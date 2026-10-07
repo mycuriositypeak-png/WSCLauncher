@@ -1,58 +1,103 @@
-# WSCLauncher
+<p align="center">
+  <img src="artwork/wsc-launcher-icon.jpg" width="180" alt="WSCLauncher icon">
+</p>
 
-Versão atual: **1.0**
+<h1 align="center">WSCLauncher</h1>
 
-Launcher Android experimental para executar a cópia instalada do **World Soccer Champs** com mods nativos externos. O produto se chama WSCLauncher; 1.0 é sua versão. O jogo é carregado no processo `dev.wsc.launcher:guest`, com dados no sandbox do launcher, separado da instalação original.
+<p align="center">
+  Um launcher Android para executar <strong>World Soccer Champs</strong> com mods nativos.
+</p>
 
-Este repositório não inclui o APK original, assets originais nem a biblioteca nativa original do World Soccer Champs. Instale sua própria cópia do jogo, com todos os splits e asset packs.
+<p align="center">
+  <strong>Versão 1.0</strong> · Android 7+ · ARM64 / ARM32
+</p>
 
-## Compatibilidade
+## ✨ Sobre
 
-- Android 7+ (API 24). Builds **Universal** (`arm64-v8a` + `armeabi-v7a`, recomendado), **ARM64** e **ARM32**; o processo do launcher precisa ter a mesma ABI do jogo instalado.
-- Em dispositivos ARM64 que possuam uma instalação ARM32 do WSC, pode ser necessário instalar explicitamente a versão ARM32 do WSCLauncher. O universal normalmente executa em ARM64 nesses dispositivos; ele não troca a arquitetura do processo em runtime.
-- **Native Mod ABI v1**: interface mínima para carregar módulos, logging e hooks. Sua versão é independente da versão 1.0 do launcher; uma atualização do launcher não exige uma nova ABI.
-- Perfil alvo do exemplo: WSC **2026.12**, `versionCode` **468**, com perfis binários e hashes independentes para ARM64 e ARM32.
-- **[Player Roles Picker 0.4](examples/player-roles/README.md)** é o exemplo funcional de mod nativo, com código e [ZIP pronto para importar](examples/player-roles/wsc-player-roles-picker-v0.4.zip). A versão 0.4 foi compilada e verificada estaticamente nas duas ABIs; a implementação ARM64 anterior foi validada em Android 15. A nova versão precisa de teste manual em cada arquitetura.
+O **WSCLauncher** executa a cópia instalada do World Soccer Champs em um processo próprio e permite carregar mods nativos externos.
 
-O launcher aceita somente mods executáveis nativos. Importar um ZIP não o ativa: ative o switch na aba **Mods** e inicie/reinicie o jogo pela aba **Início**. Salve a partida antes de reiniciar o guest.
+O projeto **não inclui o APK, assets ou bibliotecas originais do jogo**. Você precisa ter sua própria cópia instalada.
 
-## Interface
+## 📦 Compatibilidade
 
-A navegação inferior reúne três abas:
+- ✅ Android 7+ (API 24)
+- ✅ ARM64 (`arm64-v8a`)
+- ✅ ARM32 (`armeabi-v7a`)
+- ✅ APK Universal com as duas arquiteturas
+- ✅ APKs específicos ARM64 e ARM32
+- ✅ Native Mod ABI v1
 
-- **Início**: instalação, versão e arquitetura do World Soccer Champs, mods ativos e **Jogar**. A detecção é atualizada ao voltar ao aplicativo; o botão fica desabilitado se o jogo estiver ausente ou houver uma incompatibilidade detectada.
-- **Mods**: **Adicionar mod**, ativação/desativação, compatibilidade, detalhes e remoção com confirmação.
-- **Configurações**: Português (Brasil), Inglês, Espanhol ou idioma do sistema; tema claro, escuro ou sistema; cores dinâmicas no Android 12+; logs selecionáveis, exportação de diagnóstico e licenças.
+> Em aparelhos ARM64 com uma instalação ARM32 do WSC, use o APK ARM32 do WSCLauncher. Um processo 64-bit não consegue carregar bibliotecas 32-bit.
 
-A interface usa Material 3. O ícone original fornecido para o projeto está em `artwork/wsc-launcher-icon.jpg`; os resources incluem variantes por densidade e ícone adaptativo.
+## 🧩 Mods
 
-## Compilar e testar
+Os mods são pacotes ZIP nativos e podem oferecer suporte a uma ou às duas arquiteturas.
 
-Requisitos: Linux x86_64 para o script nativo, JDK 17+, Android SDK 35, build-tools 35.0.0 e NDK 27.2.12479018. Configure `ANDROID_HOME` para o SDK e `ANDROID_NDK_HOME` para o NDK.
+O projeto inclui como exemplo funcional o **[Player Roles Picker 0.4](examples/player-roles/README.md)**, testado em **ARM64 e ARM32**.
+
+Ele adiciona uma interface para selecionar jogadores nas funções de:
+
+- Capitão
+- Faltas
+- Pênaltis
+
+Cada mod é responsável por declarar quais versões e arquiteturas do jogo suporta. O launcher valida essas informações antes de carregar o módulo.
+
+## 🚀 Como usar
+
+1. Instale o World Soccer Champs.
+2. Instale o WSCLauncher compatível com a arquitetura do jogo.
+3. Abra **Mods → Adicionar mod** e selecione o ZIP.
+4. Ative o mod e inicie o jogo pela aba **Início**.
+
+As builds oficiais serão distribuídas pela seção **Releases** do GitHub.
+
+## 🎨 Interface
+
+O launcher possui três áreas principais:
+
+- 🏠 **Início** — status do jogo, compatibilidade e botão Jogar
+- 🧩 **Mods** — importar, ativar, desativar, ver detalhes e remover mods
+- ⚙️ **Configurações** — idioma, tema, logs, diagnóstico e licenças
+
+A interface usa Material 3, temas claro/escuro e cores dinâmicas quando disponíveis.
+
+## 🛠️ Compilar
+
+Requisitos principais:
+
+- JDK 17+
+- Android SDK 35
+- Android NDK 27.2.12479018
 
 ```sh
 python3 scripts/build-native.py --ndk "$ANDROID_NDK_HOME"
 ./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug
-adb install -r app/build/outputs/apk/debug/WSCLauncher-1.0-universal.apk
-# Alternativas: WSCLauncher-1.0-arm64.apk / WSCLauncher-1.0-arm32.apk.
 ```
 
-O build nativo gera o host nas duas ABIs e os intermediários do mod nas duas ABIs em `examples/player-roles/build/`. Uma execução de `assembleDebug` gera os três APKs de teste assinados com a chave debug, com o mesmo package, versão e interface. O ZIP versionado do exemplo fica fora dessa pasta e fora do APK do launcher. Instruções de reprodução, atualização do pacote e testes C++ estão no [README do exemplo](examples/player-roles/README.md).
+O build gera:
 
-## Documentação
+```text
+WSCLauncher-1.0-universal.apk
+WSCLauncher-1.0-arm64.apk
+WSCLauncher-1.0-arm32.apk
+```
 
-- [Arquitetura](docs/ARCHITECTURE.md): hospedagem, processo guest e Native Mod ABI v1.
-- [Modding](docs/MODDING.md): manifest, bibliotecas, hashes e claims.
-- [Resolução de problemas](docs/TROUBLESHOOTING.md): compatibilidade, reinício e diagnóstico.
+## 📚 Documentação
 
-## Limitações atuais
+- 📐 [Arquitetura](docs/ARCHITECTURE.md)
+- 🧩 [Criando mods](docs/MODDING.md)
+- 🩺 [Solução de problemas](docs/TROUBLESHOOTING.md)
+- ⚽ [Player Roles Picker](examples/player-roles/README.md)
 
-Só a Activity inicial é hospedada. Serviços, providers, jobs e integrações Play/SDKs não são totalmente virtualizados. O UID continua sendo o do launcher; saves privados da instalação original não são acessíveis. Pairip e a inicialização original são executados e podem rejeitar o ambiente.
+## ⚠️ Estado do projeto
 
-Não há hot unload nem isolamento entre mods dentro do guest. Mudanças de seleção reiniciam o guest no próximo início pelo launcher. Mods nativos executam com as permissões do launcher; importe código de fontes em que confia. O suporte a bibliotecas em caminhos `apk!/lib/...` depende do linker e do empacotamento do jogo.
+O WSCLauncher é experimental e distribuído por sideload. O carregamento do jogo depende da versão, arquitetura e comportamento da instalação original do WSC.
 
-O aplicativo usa `targetSdk 28` para hospedagem experimental por sideload; esta versão não está preparada para publicação na Play Store. A validação local de build e testes não substitui testes de renderização, hooks e persistência num aparelho com o jogo instalado.
+Mods nativos executam dentro do processo do launcher. Instale apenas mods de fontes em que você confia.
 
-## Licença e referências
+## 📄 Licença
 
-[GPL-3.0](LICENSE). Consulte [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) para dependências, atribuições e a ressalva existente sobre o source correspondente do AAR Pine customizado. A arquitetura usa FusionCore como referência; Pine fornece hooks Java e ShadowHook 1.0.10 fornece hooks nativos. Os bindings de WSC pertencem aos mods externos.
+Distribuído sob **GPL-3.0**.
+
+Dependências, atribuições e avisos de terceiros estão em [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

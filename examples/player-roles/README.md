@@ -6,10 +6,10 @@ Exemplo funcional de mod nativo para WSCLauncher, usando **Native Mod ABI v1**. 
 
 | Arquitetura | Build e perfil estático | Runtime desta versão |
 | --- | --- | --- |
-| ARM64 (`arm64-v8a`) | ✓ | Pendente de teste manual |
-| ARM32 (`armeabi-v7a`) | ✓ | Pendente de teste manual |
+| ARM64 (`arm64-v8a`) | ✓ | ✓ Testado manualmente |
+| ARM32 (`armeabi-v7a`) | ✓ | ✓ Testado manualmente |
 
-Perfil alvo nas duas ABIs: **World Soccer Champs 2026.12, versionCode 468**, package `com.monkeyibrow.worldsoccerchamps`. O comportamento da versão anterior foi validado em Android 15/ARM64. A 0.4 foi compilada e verificada contra as bibliotecas reais das duas arquiteturas; isso não equivale a executar seus hooks em dispositivo.
+Perfil alvo nas duas ABIs: **World Soccer Champs 2026.12, versionCode 468**, package `com.monkeyibrow.worldsoccerchamps`. A versão 0.4 foi compilada, verificada contra as bibliotecas reais das duas arquiteturas e **testada manualmente em runtime em ARM64 e ARM32**.
 
 Cada arquitetura possui seu próprio [perfil binário](profiles/README.md), offsets, layouts e assinaturas em `profiles/arm64.h` e `profiles/arm32.h`. O código de seleção e renderização permanece compartilhado. Esses bindings pertencem ao mod; não dependem de APIs de gameplay como `wsc.players` ou `wsc.stats`. A ABI do launcher continua v1, e este mod usa a UI Cocos diretamente, sem chamar `show_choice`.
 
@@ -97,6 +97,6 @@ O script detecta ELF64/AArch64 ou ELF32/ARM e verifica o perfil correspondente, 
 
 ## Limitações e diagnóstico
 
-Somente os dois perfis acima são suportados. A versão 0.4 ainda precisa de regressão em dispositivos ARM64 e ARM32: capitão, falta, cinco pênaltis, retrato/posição/avaliação/idade, rolagem, nomes longos, CANCELAR, BACK e persistência após reinício. Mudança programática de cena enquanto a seleção está aberta continua sem suporte; encerrar o guest libera a sessão.
+Somente os dois perfis acima são suportados. A versão 0.4 foi testada manualmente em dispositivos ARM64 e ARM32. Mudanças futuras do WSC ainda exigem nova validação dos perfis, hooks, offsets e assinaturas antes de serem consideradas compatíveis. Mudança programática de cena enquanto a seleção está aberta continua sem suporte; encerrar o guest libera a sessão.
 
 Em falha, exporte o diagnóstico e procure `NATIVE MOD` / `ROLE_PICKER`. Consulte [TROUBLESHOOTING](../../docs/TROUBLESHOOTING.md) e [MODDING](../../docs/MODDING.md). O exemplo segue a [licença do projeto](../../LICENSE), com notices em [THIRD_PARTY_NOTICES](../../THIRD_PARTY_NOTICES.md).
