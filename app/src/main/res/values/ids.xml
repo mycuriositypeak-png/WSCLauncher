@@ -1,0 +1,7 @@
+<resources>
+    <item type="id" name="action_refresh" />
+    <item type="id" name="action_details" />
+    <item type="id" name="action_remove" />
+    <item type="id" name="play_button" />
+    <item type="id" name="add_mod_button" />
+</resources>

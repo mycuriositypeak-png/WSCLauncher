@@ -1,0 +1,17 @@
+.gradle/
+local.properties
+**/build/
+*.log
+
+# Local tools, diagnostics and Android signing material.
+.idea/
+*.iml
+.cxx/
+**/.cxx/
+__pycache__/
+*.py[cod]
+*.apk
+*.aab
+*.jks
+*.keystore
+wsc-test/

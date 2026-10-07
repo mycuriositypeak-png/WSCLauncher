@@ -1,0 +1,4 @@
+{
+    global: wsc_mod_init;
+    local: *;
+};

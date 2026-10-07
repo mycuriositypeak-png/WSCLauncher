@@ -1,0 +1,5 @@
+<!-- Keep the full supplied square artwork within the adaptive icon's 72dp viewport.
+     Only the device's launcher mask crops the green corners; the hammer is unchanged. -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android" android:inset="16.666667%">
+    <bitmap android:src="@drawable/wsc_launcher_art" android:gravity="fill" android:filter="true" />
+</inset>

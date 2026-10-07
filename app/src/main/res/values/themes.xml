@@ -1,0 +1,67 @@
+<resources>
+    <style name="Theme.WSCLauncher" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/wsc_primary</item>
+        <item name="colorOnPrimary">@color/wsc_on_primary</item>
+        <item name="colorPrimaryContainer">@color/wsc_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/wsc_on_primary_container</item>
+        <item name="colorSecondary">@color/wsc_secondary</item>
+        <item name="colorOnSecondary">@color/wsc_on_secondary</item>
+        <item name="colorSecondaryContainer">@color/wsc_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/wsc_on_secondary_container</item>
+        <item name="android:colorBackground">@color/wsc_surface</item>
+        <item name="colorSurface">@color/wsc_surface</item>
+        <item name="colorOnSurface">@color/wsc_on_surface</item>
+        <item name="colorSurfaceVariant">@color/wsc_surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/wsc_on_surface_variant</item>
+        <item name="colorOutline">@color/wsc_outline</item>
+        <item name="colorOutlineVariant">@color/wsc_outline_variant</item>
+        <item name="colorError">@color/wsc_error</item>
+        <item name="colorOnError">@color/wsc_on_error</item>
+        <item name="colorErrorContainer">@color/wsc_error_container</item>
+        <item name="colorOnErrorContainer">@color/wsc_on_error_container</item>
+        <item name="shapeAppearanceSmallComponent">@style/Shape.WSC.Small</item>
+        <item name="shapeAppearanceMediumComponent">@style/Shape.WSC.Card</item>
+        <item name="shapeAppearanceLargeComponent">@style/Shape.WSC.Dialog</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.WSC.Dialog</item>
+        <item name="materialCardViewStyle">@style/Widget.WSC.Card</item>
+        <item name="chipStyle">@style/Widget.WSC.Status</item>
+        <item name="materialButtonStyle">@style/Widget.WSC.Button</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:statusBarColor">?attr/colorSurface</item>
+        <item name="android:navigationBarColor">?attr/colorSurface</item>
+        <item name="android:windowActionModeOverlay">true</item>
+    </style>
+    <style name="Shape.WSC.Small" parent="ShapeAppearance.Material3.Corner.Medium">
+        <item name="cornerSize">@dimen/small_radius</item>
+    </style>
+    <style name="Shape.WSC.Card" parent="ShapeAppearance.Material3.Corner.Medium">
+        <item name="cornerSize">@dimen/card_radius</item>
+    </style>
+    <style name="Shape.WSC.Dialog" parent="ShapeAppearance.Material3.Corner.ExtraLarge">
+        <item name="cornerSize">@dimen/dialog_radius</item>
+    </style>
+    <style name="ThemeOverlay.WSC.Dialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="shapeAppearance">@style/Shape.WSC.Dialog</item>
+    </style>
+    <style name="Widget.WSC.Card" parent="Widget.Material3.CardView.Filled">
+        <item name="shapeAppearance">@style/Shape.WSC.Card</item>
+        <item name="cardBackgroundColor">?attr/colorSurfaceVariant</item>
+        <item name="cardElevation">0dp</item>
+        <item name="strokeWidth">0dp</item>
+    </style>
+    <style name="Widget.WSC.Button" parent="Widget.Material3.Button">
+        <item name="cornerRadius">14dp</item>
+        <item name="android:minHeight">56dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:textAppearance">@style/TextAppearance.Material3.TitleMedium</item>
+    </style>
+    <style name="Widget.WSC.Status" parent="Widget.Material3.Chip.Assist">
+        <item name="chipBackgroundColor">?attr/colorPrimaryContainer</item>
+        <item name="android:textColor">?attr/colorOnPrimaryContainer</item>
+        <item name="chipStrokeWidth">0dp</item>
+        <item name="ensureMinTouchTargetSize">false</item>
+        <item name="chipMinHeight">32dp</item>
+        <item name="android:textAppearance">@style/TextAppearance.Material3.LabelLarge</item>
+    </style>
+</resources>

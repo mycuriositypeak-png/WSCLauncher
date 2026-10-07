@@ -1,0 +1,4 @@
+<resources>
+    <!-- Opaque fallback behind the artwork during adaptive icon movement. -->
+    <color name="launcher_icon_background">#12B64D</color>
+</resources>
