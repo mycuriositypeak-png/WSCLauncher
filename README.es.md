@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <strong>Versión 1.0.1</strong> · Android 7+ · ARM64 / ARM32
+  <strong>Versión 1.0.2</strong> · Android 7+ · ARM64 / ARM32
 </p>
 
 ## ✨ Acerca de
