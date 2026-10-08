@@ -1,70 +1,74 @@
 <p align="center">
+  <strong>English</strong> · <a href="README.pt-BR.md">Português (Brasil)</a> · <a href="README.es.md">Español</a>
+</p>
+
+<p align="center">
   <img src="artwork/wsc-launcher-icon.jpg" width="180" alt="WSCLauncher icon">
 </p>
 
 <h1 align="center">WSCLauncher</h1>
 
 <p align="center">
-  Um launcher Android para executar <strong>World Soccer Champs</strong> com mods nativos.
+  An Android launcher for running <strong>World Soccer Champs</strong> with native mods.
 </p>
 
 <p align="center">
-  <strong>Versão 1.0</strong> · Android 7+ · ARM64 / ARM32
+  <strong>Version 1.0</strong> · Android 7+ · ARM64 / ARM32
 </p>
 
-## ✨ Sobre
+## ✨ About
 
-O **WSCLauncher** executa a cópia instalada do World Soccer Champs em um processo próprio e permite carregar mods nativos externos.
+**WSCLauncher** runs your installed copy of World Soccer Champs in its own process and allows external native mods to be loaded.
 
-O projeto **não inclui o APK, assets ou bibliotecas originais do jogo**. Você precisa ter sua própria cópia instalada.
+This project **does not include the original game APK, assets, or native libraries**. You must have your own copy of the game installed.
 
-## 📦 Compatibilidade
+## 📦 Compatibility
 
 - ✅ Android 7+ (API 24)
 - ✅ ARM64 (`arm64-v8a`)
 - ✅ ARM32 (`armeabi-v7a`)
-- ✅ APK Universal com as duas arquiteturas
-- ✅ APKs específicos ARM64 e ARM32
+- ✅ Universal APK with both architectures
+- ✅ Dedicated ARM64 and ARM32 APKs
 - ✅ Native Mod ABI v1
 
-> Em aparelhos ARM64 com uma instalação ARM32 do WSC, use o APK ARM32 do WSCLauncher. Um processo 64-bit não consegue carregar bibliotecas 32-bit.
+> On ARM64 devices with an ARM32 installation of WSC, use the ARM32 WSCLauncher APK. A 64-bit process cannot load 32-bit native libraries.
 
 ## 🧩 Mods
 
-Os mods são pacotes ZIP nativos e podem oferecer suporte a uma ou às duas arquiteturas.
+Mods are native ZIP packages and may support one or both architectures.
 
-O projeto inclui como exemplo funcional o **[Player Roles Picker 0.4](examples/player-roles/README.md)**, testado em **ARM64 e ARM32**.
+The project includes **[Player Roles Picker 0.4](examples/player-roles/README.md)** as a functional example, tested on **ARM64 and ARM32**.
 
-Ele adiciona uma interface para selecionar jogadores nas funções de:
+It adds a player picker for:
 
-- Capitão
-- Faltas
-- Pênaltis
+- Captain
+- Free kicks
+- Penalties
 
-Cada mod é responsável por declarar quais versões e arquiteturas do jogo suporta. O launcher valida essas informações antes de carregar o módulo.
+Each mod is responsible for declaring which game versions and architectures it supports. The launcher validates compatibility before loading the module.
 
-## 🚀 Como usar
+## 🚀 How to use
 
-1. Instale o World Soccer Champs.
-2. Instale o WSCLauncher compatível com a arquitetura do jogo.
-3. Abra **Mods → Adicionar mod** e selecione o ZIP.
-4. Ative o mod e inicie o jogo pela aba **Início**.
+1. Install World Soccer Champs.
+2. Install the WSCLauncher APK that matches the game's architecture.
+3. Open **Mods → Add mod** and select the ZIP.
+4. Enable the mod and launch the game from the **Home** tab.
 
-As builds oficiais serão distribuídas pela seção **Releases** do GitHub.
+Official builds will be distributed through **GitHub Releases**.
 
 ## 🎨 Interface
 
-O launcher possui três áreas principais:
+WSCLauncher has three main sections:
 
-- 🏠 **Início** — status do jogo, compatibilidade e botão Jogar
-- 🧩 **Mods** — importar, ativar, desativar, ver detalhes e remover mods
-- ⚙️ **Configurações** — idioma, tema, logs, diagnóstico e licenças
+- 🏠 **Home** — game status, compatibility, and Play button
+- 🧩 **Mods** — import, enable, disable, inspect, and remove mods
+- ⚙️ **Settings** — language, theme, logs, diagnostics, and licenses
 
-A interface usa Material 3, temas claro/escuro e cores dinâmicas quando disponíveis.
+The interface uses Material 3, light/dark themes, and dynamic colors when available.
 
-## 🛠️ Compilar
+## 🛠️ Build
 
-Requisitos principais:
+Main requirements:
 
 - JDK 17+
 - Android SDK 35
@@ -75,7 +79,7 @@ python3 scripts/build-native.py --ndk "$ANDROID_NDK_HOME"
 ./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug
 ```
 
-O build gera:
+The build generates:
 
 ```text
 WSCLauncher-1.0-universal.apk
@@ -83,21 +87,21 @@ WSCLauncher-1.0-arm64.apk
 WSCLauncher-1.0-arm32.apk
 ```
 
-## 📚 Documentação
+## 📚 Documentation
 
-- 📐 [Arquitetura](docs/ARCHITECTURE.md)
-- 🧩 [Criando mods](docs/MODDING.md)
-- 🩺 [Solução de problemas](docs/TROUBLESHOOTING.md)
+- 📐 [Architecture](docs/ARCHITECTURE.md)
+- 🧩 [Modding](docs/MODDING.md)
+- 🩺 [Troubleshooting](docs/TROUBLESHOOTING.md)
 - ⚽ [Player Roles Picker](examples/player-roles/README.md)
 
-## ⚠️ Estado do projeto
+## ⚠️ Project status
 
-O WSCLauncher é experimental e distribuído por sideload. O carregamento do jogo depende da versão, arquitetura e comportamento da instalação original do WSC.
+WSCLauncher is experimental and distributed through sideloading. Game hosting depends on the version, architecture, and behavior of the installed WSC build.
 
-Mods nativos executam dentro do processo do launcher. Instale apenas mods de fontes em que você confia.
+Native mods run inside the launcher process. Only install mods from sources you trust.
 
-## 📄 Licença
+## 📄 License
 
-Distribuído sob **GPL-3.0**.
+Distributed under **GPL-3.0**.
 
-Dependências, atribuições e avisos de terceiros estão em [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+Third-party dependencies, attribution, and notices are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
