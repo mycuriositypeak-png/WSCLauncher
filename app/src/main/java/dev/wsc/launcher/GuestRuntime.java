@@ -34,8 +34,10 @@ final class GuestRuntime {
     static void prepare(Context context) {
         host = context;
         logFile = new File(context.getFilesDir(), "guest-diagnostic.log");
-        try (FileWriter writer = new FileWriter(logFile, false)) { writer.write("WSCLauncher 1.0 | diagnóstico\n"); }
-        catch (IOException ignored) { }
+        try (FileWriter writer = new FileWriter(logFile, false)) {
+            String version = context.getPackageManager().getPackageInfo(context.getPackageName(), 0).versionName;
+            writer.write("WSCLauncher " + version + " | diagnóstico\n");
+        } catch (IOException | PackageManager.NameNotFoundException ignored) { }
         RuntimeLogcat.start(context);
         Thread.UncaughtExceptionHandler previous = Thread.getDefaultUncaughtExceptionHandler();
         Thread.setDefaultUncaughtExceptionHandler((thread, error) -> {
@@ -45,7 +47,7 @@ final class GuestRuntime {
         try {
             log("PRECHECK: processo " + android.os.Process.myPid() + "; 64 bits=" + android.os.Process.is64Bit()
                     + "; depurável=" + ((context.getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0)
-                    + "; bootstrap=context-before-create-v2", null);
+                    + "; bootstrap=context-before-create-v2+firebase-provider-v1", null);
             game = context.createPackageContext(TARGET, Context.CONTEXT_INCLUDE_CODE | Context.CONTEXT_IGNORE_SECURITY);
             ApplicationInfo info = context.getPackageManager().getApplicationInfo(TARGET, PackageManager.GET_META_DATA);
             Intent launch = context.getPackageManager().getLaunchIntentForPackage(TARGET);
@@ -85,6 +87,13 @@ final class GuestRuntime {
             String applicationName = info.className == null ? Application.class.getName() : info.className;
             // Runs the game's normal Application initialization, including its protection code.
             gameApplication = new Instrumentation().newApplication(loader, applicationName, new GuestContext(host, game));
+            // SDKBOX can start an instrumented HTTP request during Cocos onCreate.
+            // Starting Firebase only later in AppActivity races SessionManager's
+            // class initializer against FirebaseApp's lock and can deadlock both.
+            // Preserve Android's provider-before-Application/Activity ordering.
+            log("PROVIDERS: inicializando Firebase antes da Application e do Cocos.", null);
+            boolean firebase = GuestProviders.initializeFirebase(gameApplication, loader);
+            log("PROVIDERS: Firebase concluído; declarado e ativo=" + firebase, null);
             log("APPLICATION: attach concluído; iniciando onCreate.", null);
             gameApplication.onCreate();
             log("APPLICATION: onCreate concluído; aguardando Activity.", null);

@@ -10,6 +10,8 @@ A tela principal detecta `com.monkeyibrow.worldsoccerchamps` instalado pelo usu�
 
 `GuestContext` combina código/recursos do jogo com armazenamento do launcher. Alguns clientes Google recebem `SdkContext`, que identifica o pacote e UID reais do launcher. Isso não virtualiza todos os serviços Android.
 
+Quando o manifesto instalado declara um `FirebaseInitProvider` ativo, `GuestProviders` executa seu `attachInfo`/`onCreate` original na thread principal, antes de `Application.onCreate` e do Cocos. Essa ordem corresponde à inicialização normal de providers pelo Android e evita a disputa entre a inicialização do Firebase e requisições instrumentadas iniciadas pelo SDKBOX. O provider usa as classes, recursos e metadados originais com armazenamento do guest; não é registrado como provider do launcher. Outros providers não são iniciados automaticamente.
+
 O guest tem o mesmo UID e permissões do launcher. Seu sandbox é separado do sandbox do jogo original, mas compartilhado com o processo principal do launcher. Saves privados do jogo original não são importados. Mods carregados no guest não têm sandbox individual.
 
 ## Mods nativos

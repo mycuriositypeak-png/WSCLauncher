@@ -30,6 +30,8 @@ Salve a partida antes de voltar ao launcher. Na aba **Mods**, ative/desative o m
 
 ## Permissões e serviços
 
+Se o jogo ficar parado na abertura em uma build de release, confira se o diagnóstico registra `PROVIDERS: Firebase concluído` antes de `APPLICATION: attach concluído` e do Cocos. O launcher inicializa o `FirebaseInitProvider` original antes dessas etapas. Inicializar Firebase somente depois de uma requisição HTTP instrumentada do SDKBOX pode bloquear `FirebaseApp` e o inicializador de `SessionManager`, antes de qualquer hook de UI de mod. A linha `bootstrap=context-before-create-v2+firebase-provider-v1` identifica o fluxo corrigido. Caso o problema continue, exporte um diagnóstico novo; não apague os dados ou os saves para testar.
+
 O guest usa as permissões e UID do launcher. O manifest mantém `VIBRATE`, necessária para evitar `SecurityException` na vibração do jogo; é uma permissão normal, sem pedido em runtime. Os clientes Google observados recebem contexto do launcher, mas serviços/providers/jobs não são virtualizados por completo. Se aparecer `Unknown calling package`, falha de agendamento ou outra permissão negada, exporte o diagnóstico; não suponha que permissões da instalação original valham para o guest.
 
 ## Exportar diagnóstico
