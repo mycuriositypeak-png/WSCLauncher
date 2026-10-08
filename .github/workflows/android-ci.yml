@@ -46,6 +46,22 @@ jobs:
           "${SDKMANAGER}" "platforms;android-35" "build-tools;35.0.0" "ndk;${NDK_VERSION}"
           echo "ANDROID_NDK_HOME=${ANDROID_HOME}/ndk/${NDK_VERSION}" >> "${GITHUB_ENV}"
 
+      - name: Resolve app version
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_VERSION="$(python3 - <<'PY'
+          import re
+          from pathlib import Path
+          text = Path("app/build.gradle.kts").read_text()
+          match = re.search(r'versionName\s*=\s*"([^"]+)"', text)
+          if not match:
+              raise SystemExit("Could not read versionName")
+          print(match.group(1))
+          PY
+          )"
+          echo "APP_VERSION=${APP_VERSION}" >> "${GITHUB_ENV}"
+
       - name: Build native host and Player Roles
         shell: bash
         run: |
@@ -84,22 +100,22 @@ jobs:
         run: |
           set -euo pipefail
           OUT="app/build/outputs/apk/debug"
-          test -f "${OUT}/WSCLauncher-1.0-universal.apk"
-          test -f "${OUT}/WSCLauncher-1.0-arm64.apk"
-          test -f "${OUT}/WSCLauncher-1.0-arm32.apk"
+          test -f "${OUT}/WSCLauncher-${APP_VERSION}-universal.apk"
+          test -f "${OUT}/WSCLauncher-${APP_VERSION}-arm64.apk"
+          test -f "${OUT}/WSCLauncher-${APP_VERSION}-arm32.apk"
           test "$(find "${OUT}" -maxdepth 1 -type f -name '*.apk' | wc -l)" -eq 3
 
-          zipinfo -1 "${OUT}/WSCLauncher-1.0-universal.apk" | grep -qx 'lib/arm64-v8a/libwscmodhost.so'
-          zipinfo -1 "${OUT}/WSCLauncher-1.0-universal.apk" | grep -qx 'lib/armeabi-v7a/libwscmodhost.so'
+          zipinfo -1 "${OUT}/WSCLauncher-${APP_VERSION}-universal.apk" | grep -qx 'lib/arm64-v8a/libwscmodhost.so'
+          zipinfo -1 "${OUT}/WSCLauncher-${APP_VERSION}-universal.apk" | grep -qx 'lib/armeabi-v7a/libwscmodhost.so'
 
-          zipinfo -1 "${OUT}/WSCLauncher-1.0-arm64.apk" | grep -qx 'lib/arm64-v8a/libwscmodhost.so'
-          if zipinfo -1 "${OUT}/WSCLauncher-1.0-arm64.apk" | grep -q '^lib/armeabi-v7a/'; then
+          zipinfo -1 "${OUT}/WSCLauncher-${APP_VERSION}-arm64.apk" | grep -qx 'lib/arm64-v8a/libwscmodhost.so'
+          if zipinfo -1 "${OUT}/WSCLauncher-${APP_VERSION}-arm64.apk" | grep -q '^lib/armeabi-v7a/'; then
             echo "ARM64 APK unexpectedly contains ARM32 native libraries."
             exit 1
           fi
 
-          zipinfo -1 "${OUT}/WSCLauncher-1.0-arm32.apk" | grep -qx 'lib/armeabi-v7a/libwscmodhost.so'
-          if zipinfo -1 "${OUT}/WSCLauncher-1.0-arm32.apk" | grep -q '^lib/arm64-v8a/'; then
+          zipinfo -1 "${OUT}/WSCLauncher-${APP_VERSION}-arm32.apk" | grep -qx 'lib/armeabi-v7a/libwscmodhost.so'
+          if zipinfo -1 "${OUT}/WSCLauncher-${APP_VERSION}-arm32.apk" | grep -q '^lib/arm64-v8a/'; then
             echo "ARM32 APK unexpectedly contains ARM64 native libraries."
             exit 1
           fi
@@ -113,7 +129,7 @@ jobs:
           if-no-files-found: error
           retention-days: 14
           path: |
-            app/build/outputs/apk/debug/WSCLauncher-1.0-universal.apk
-            app/build/outputs/apk/debug/WSCLauncher-1.0-arm64.apk
-            app/build/outputs/apk/debug/WSCLauncher-1.0-arm32.apk
+            app/build/outputs/apk/debug/WSCLauncher-${APP_VERSION}-universal.apk
+            app/build/outputs/apk/debug/WSCLauncher-${APP_VERSION}-arm64.apk
+            app/build/outputs/apk/debug/WSCLauncher-${APP_VERSION}-arm32.apk
             examples/player-roles/wsc-player-roles-picker-v0.4.zip

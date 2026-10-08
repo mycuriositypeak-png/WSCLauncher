@@ -24,12 +24,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Validate release tag
-        if: github.event_name == 'push'
+      - name: Resolve app version
         shell: bash
         run: |
           set -euo pipefail
-          TAG_VERSION="${GITHUB_REF_NAME#v}"
           APP_VERSION="$(python3 - <<'PY'
           import re
           from pathlib import Path
@@ -40,6 +38,14 @@ jobs:
           print(match.group(1))
           PY
           )"
+          echo "APP_VERSION=${APP_VERSION}" >> "${GITHUB_ENV}"
+
+      - name: Validate release tag
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
           echo "Tag version: ${TAG_VERSION}"
           echo "App version: ${APP_VERSION}"
           test "${TAG_VERSION}" = "${APP_VERSION}" || {
@@ -130,9 +136,9 @@ jobs:
           OUT="app/build/outputs/apk/release"
           BUILD_TOOLS="${ANDROID_HOME}/build-tools/35.0.0"
 
-          UNIVERSAL="${OUT}/WSCLauncher-1.0-universal.apk"
-          ARM64="${OUT}/WSCLauncher-1.0-arm64.apk"
-          ARM32="${OUT}/WSCLauncher-1.0-arm32.apk"
+          UNIVERSAL="${OUT}/WSCLauncher-${APP_VERSION}-universal.apk"
+          ARM64="${OUT}/WSCLauncher-${APP_VERSION}-arm64.apk"
+          ARM32="${OUT}/WSCLauncher-${APP_VERSION}-arm32.apk"
 
           test -f "${UNIVERSAL}"
           test -f "${ARM64}"
@@ -141,7 +147,7 @@ jobs:
 
           for apk in "${UNIVERSAL}" "${ARM64}" "${ARM32}"; do
             "${BUILD_TOOLS}/apksigner" verify --verbose --print-certs "${apk}"
-            "${BUILD_TOOLS}/aapt" dump badging "${apk}" | grep -q "versionName='1.0'"
+            "${BUILD_TOOLS}/aapt" dump badging "${apk}" | grep -q "versionName='${APP_VERSION}'"
           done
 
           zipinfo -1 "${UNIVERSAL}" | grep -qx 'lib/arm64-v8a/libwscmodhost.so'
@@ -164,9 +170,9 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p dist
-          cp app/build/outputs/apk/release/WSCLauncher-1.0-universal.apk dist/
-          cp app/build/outputs/apk/release/WSCLauncher-1.0-arm64.apk dist/
-          cp app/build/outputs/apk/release/WSCLauncher-1.0-arm32.apk dist/
+          cp app/build/outputs/apk/release/WSCLauncher-${APP_VERSION}-universal.apk dist/
+          cp app/build/outputs/apk/release/WSCLauncher-${APP_VERSION}-arm64.apk dist/
+          cp app/build/outputs/apk/release/WSCLauncher-${APP_VERSION}-arm32.apk dist/
 
           PLAYER_ROLES_ZIP="$(find examples/player-roles -maxdepth 1 -type f -name 'wsc-player-roles-picker-v*.zip' | sort -V | tail -n 1)"
           test -n "${PLAYER_ROLES_ZIP}"
