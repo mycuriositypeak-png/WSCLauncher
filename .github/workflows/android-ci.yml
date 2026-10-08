@@ -1,0 +1,114 @@
+name: Android CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NDK_VERSION: "27.2.12479018"
+
+jobs:
+  build:
+    name: Test and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Install Android SDK packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdkmanager "platforms;android-35" "build-tools;35.0.0" "ndk;${NDK_VERSION}"
+          echo "ANDROID_NDK_HOME=${ANDROID_HOME}/ndk/${NDK_VERSION}" >> "${GITHUB_ENV}"
+
+      - name: Build native host and Player Roles
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/build-native.py --ndk "${ANDROID_HOME}/ndk/${NDK_VERSION}"
+
+      - name: Run Player Roles host tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p examples/player-roles/build/host-tests
+          g++ -std=c++17 -Wall -Wextra -Werror -I native/include \
+            examples/player-roles/callback_test.cpp \
+            -o examples/player-roles/build/host-tests/callback-test
+          examples/player-roles/build/host-tests/callback-test
+
+          g++ -std=c++17 -Wall -Wextra -Werror \
+            examples/player-roles/selection_policy_test.cpp \
+            -o examples/player-roles/build/host-tests/policy-test
+          examples/player-roles/build/host-tests/policy-test
+
+          g++ -std=c++17 -Wall -Wextra -Werror -I native/include \
+            examples/player-roles/profile_test.cpp \
+            -o examples/player-roles/build/host-tests/profile-test
+          examples/player-roles/build/host-tests/profile-test
+
+      - name: Unit tests, lint and debug APKs
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x gradlew
+          ./gradlew --no-daemon :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
+
+      - name: Validate debug APK set
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="app/build/outputs/apk/debug"
+          test -f "${OUT}/WSCLauncher-1.0-universal.apk"
+          test -f "${OUT}/WSCLauncher-1.0-arm64.apk"
+          test -f "${OUT}/WSCLauncher-1.0-arm32.apk"
+          test "$(find "${OUT}" -maxdepth 1 -type f -name '*.apk' | wc -l)" -eq 3
+
+          zipinfo -1 "${OUT}/WSCLauncher-1.0-universal.apk" | grep -qx 'lib/arm64-v8a/libwscmodhost.so'
+          zipinfo -1 "${OUT}/WSCLauncher-1.0-universal.apk" | grep -qx 'lib/armeabi-v7a/libwscmodhost.so'
+
+          zipinfo -1 "${OUT}/WSCLauncher-1.0-arm64.apk" | grep -qx 'lib/arm64-v8a/libwscmodhost.so'
+          if zipinfo -1 "${OUT}/WSCLauncher-1.0-arm64.apk" | grep -q '^lib/armeabi-v7a/'; then
+            echo "ARM64 APK unexpectedly contains ARM32 native libraries."
+            exit 1
+          fi
+
+          zipinfo -1 "${OUT}/WSCLauncher-1.0-arm32.apk" | grep -qx 'lib/armeabi-v7a/libwscmodhost.so'
+          if zipinfo -1 "${OUT}/WSCLauncher-1.0-arm32.apk" | grep -q '^lib/arm64-v8a/'; then
+            echo "ARM32 APK unexpectedly contains ARM64 native libraries."
+            exit 1
+          fi
+
+          sha256sum "${OUT}"/*.apk examples/player-roles/wsc-player-roles-picker-v0.4.zip
+
+      - name: Upload debug build
+        uses: actions/upload-artifact@v4
+        with:
+          name: WSCLauncher-debug
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            app/build/outputs/apk/debug/WSCLauncher-1.0-universal.apk
+            app/build/outputs/apk/debug/WSCLauncher-1.0-arm64.apk
+            app/build/outputs/apk/debug/WSCLauncher-1.0-arm32.apk
+            examples/player-roles/wsc-player-roles-picker-v0.4.zip

@@ -1,0 +1,211 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+env:
+  NDK_VERSION: "27.2.12479018"
+
+jobs:
+  release:
+    name: Build signed release
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    steps:
+      - name: Checkout tag
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate release tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          APP_VERSION="$(python3 - <<'PY'
+          import re
+          from pathlib import Path
+          text = Path("app/build.gradle.kts").read_text()
+          match = re.search(r'versionName\s*=\s*"([^"]+)"', text)
+          if not match:
+              raise SystemExit("Could not read versionName")
+          print(match.group(1))
+          PY
+          )"
+          echo "Tag version: ${TAG_VERSION}"
+          echo "App version: ${APP_VERSION}"
+          test "${TAG_VERSION}" = "${APP_VERSION}" || {
+            echo "Tag must match app versionName (expected v${APP_VERSION})."
+            exit 1
+          }
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Install Android SDK packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdkmanager "platforms;android-35" "build-tools;35.0.0" "ndk;${NDK_VERSION}"
+          echo "ANDROID_NDK_HOME=${ANDROID_HOME}/ndk/${NDK_VERSION}" >> "${GITHUB_ENV}"
+
+      - name: Restore release keystore
+        shell: bash
+        env:
+          KEYSTORE_BASE64: ${{ secrets.WSC_RELEASE_KEYSTORE_BASE64 }}
+        run: |
+          set -euo pipefail
+          test -n "${KEYSTORE_BASE64}" || {
+            echo "Missing WSC_RELEASE_KEYSTORE_BASE64 secret."
+            exit 1
+          }
+          mkdir -p "${RUNNER_TEMP}/wsc-signing"
+          printf '%s' "${KEYSTORE_BASE64}" | base64 --decode > "${RUNNER_TEMP}/wsc-signing/release.jks"
+          chmod 600 "${RUNNER_TEMP}/wsc-signing/release.jks"
+          test -s "${RUNNER_TEMP}/wsc-signing/release.jks"
+
+      - name: Build native host and Player Roles
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/build-native.py --ndk "${ANDROID_HOME}/ndk/${NDK_VERSION}"
+
+      - name: Run Player Roles host tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p examples/player-roles/build/host-tests
+          g++ -std=c++17 -Wall -Wextra -Werror -I native/include \
+            examples/player-roles/callback_test.cpp \
+            -o examples/player-roles/build/host-tests/callback-test
+          examples/player-roles/build/host-tests/callback-test
+
+          g++ -std=c++17 -Wall -Wextra -Werror \
+            examples/player-roles/selection_policy_test.cpp \
+            -o examples/player-roles/build/host-tests/policy-test
+          examples/player-roles/build/host-tests/policy-test
+
+          g++ -std=c++17 -Wall -Wextra -Werror -I native/include \
+            examples/player-roles/profile_test.cpp \
+            -o examples/player-roles/build/host-tests/profile-test
+          examples/player-roles/build/host-tests/profile-test
+
+      - name: Test, lint and build signed APKs
+        shell: bash
+        env:
+          WSC_RELEASE_STORE_FILE: ${{ runner.temp }}/wsc-signing/release.jks
+          WSC_RELEASE_STORE_PASSWORD: ${{ secrets.WSC_RELEASE_STORE_PASSWORD }}
+          WSC_RELEASE_KEY_ALIAS: ${{ secrets.WSC_RELEASE_KEY_ALIAS }}
+          WSC_RELEASE_KEY_PASSWORD: ${{ secrets.WSC_RELEASE_KEY_PASSWORD }}
+          WSC_REQUIRE_RELEASE_SIGNING: "true"
+        run: |
+          set -euo pipefail
+          test -n "${WSC_RELEASE_STORE_PASSWORD}" || { echo "Missing WSC_RELEASE_STORE_PASSWORD."; exit 1; }
+          test -n "${WSC_RELEASE_KEY_ALIAS}" || { echo "Missing WSC_RELEASE_KEY_ALIAS."; exit 1; }
+          test -n "${WSC_RELEASE_KEY_PASSWORD}" || { echo "Missing WSC_RELEASE_KEY_PASSWORD."; exit 1; }
+          chmod +x gradlew
+          ./gradlew --no-daemon :app:testDebugUnitTest :app:lintDebug :app:assembleRelease
+
+      - name: Validate signed release artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="app/build/outputs/apk/release"
+          BUILD_TOOLS="${ANDROID_HOME}/build-tools/35.0.0"
+
+          UNIVERSAL="${OUT}/WSCLauncher-1.0-universal.apk"
+          ARM64="${OUT}/WSCLauncher-1.0-arm64.apk"
+          ARM32="${OUT}/WSCLauncher-1.0-arm32.apk"
+
+          test -f "${UNIVERSAL}"
+          test -f "${ARM64}"
+          test -f "${ARM32}"
+          test "$(find "${OUT}" -maxdepth 1 -type f -name '*.apk' | wc -l)" -eq 3
+
+          for apk in "${UNIVERSAL}" "${ARM64}" "${ARM32}"; do
+            "${BUILD_TOOLS}/apksigner" verify --verbose --print-certs "${apk}"
+            "${BUILD_TOOLS}/aapt" dump badging "${apk}" | grep -q "versionName='1.0'"
+          done
+
+          zipinfo -1 "${UNIVERSAL}" | grep -qx 'lib/arm64-v8a/libwscmodhost.so'
+          zipinfo -1 "${UNIVERSAL}" | grep -qx 'lib/armeabi-v7a/libwscmodhost.so'
+
+          zipinfo -1 "${ARM64}" | grep -qx 'lib/arm64-v8a/libwscmodhost.so'
+          if zipinfo -1 "${ARM64}" | grep -q '^lib/armeabi-v7a/'; then
+            echo "ARM64 APK unexpectedly contains ARM32 native libraries."
+            exit 1
+          fi
+
+          zipinfo -1 "${ARM32}" | grep -qx 'lib/armeabi-v7a/libwscmodhost.so'
+          if zipinfo -1 "${ARM32}" | grep -q '^lib/arm64-v8a/'; then
+            echo "ARM32 APK unexpectedly contains ARM64 native libraries."
+            exit 1
+          fi
+
+      - name: Prepare release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cp app/build/outputs/apk/release/WSCLauncher-1.0-universal.apk dist/
+          cp app/build/outputs/apk/release/WSCLauncher-1.0-arm64.apk dist/
+          cp app/build/outputs/apk/release/WSCLauncher-1.0-arm32.apk dist/
+
+          PLAYER_ROLES_ZIP="$(find examples/player-roles -maxdepth 1 -type f -name 'wsc-player-roles-picker-v*.zip' | sort -V | tail -n 1)"
+          test -n "${PLAYER_ROLES_ZIP}"
+          cp "${PLAYER_ROLES_ZIP}" dist/
+
+          (
+            cd dist
+            sha256sum WSCLauncher-*.apk wsc-player-roles-picker-v*.zip > SHA256SUMS.txt
+          )
+
+          cat > release-notes.md <<EOF
+          ## WSCLauncher ${GITHUB_REF_NAME#v}
+
+          ### 📦 Downloads
+
+          - **Universal** — recommended for most devices.
+          - **ARM64** — use when the installed game is ARM64.
+          - **ARM32** — use when the installed game is ARM32, including ARM64 devices running an ARM32 WSC build.
+          - **Player Roles Picker** — example native mod package for supported WSC builds.
+
+          ### 🔐 Verification
+
+          SHA-256 checksums are included in `SHA256SUMS.txt`.
+
+          > WSCLauncher does not include World Soccer Champs, its APK, assets, or proprietary game libraries.
+          EOF
+
+          cat dist/SHA256SUMS.txt
+
+      - name: Upload release build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WSCLauncher-${{ github.ref_name }}
+          if-no-files-found: error
+          retention-days: 30
+          path: |
+            dist/*
+            release-notes.md
+
+      - name: Publish GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create "${GITHUB_REF_NAME}" dist/* \
+            --verify-tag \
+            --title "WSCLauncher ${GITHUB_REF_NAME#v}" \
+            --notes-file release-notes.md

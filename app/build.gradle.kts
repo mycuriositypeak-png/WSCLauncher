@@ -1,4 +1,31 @@
 plugins { id("com.android.application") }
+
+val releaseStoreFile = providers.environmentVariable("WSC_RELEASE_STORE_FILE").orNull
+val releaseStorePassword = providers.environmentVariable("WSC_RELEASE_STORE_PASSWORD").orNull
+val releaseKeyAlias = providers.environmentVariable("WSC_RELEASE_KEY_ALIAS").orNull
+val releaseKeyPassword = providers.environmentVariable("WSC_RELEASE_KEY_PASSWORD").orNull
+val releaseSigningValues = listOf(
+    releaseStoreFile,
+    releaseStorePassword,
+    releaseKeyAlias,
+    releaseKeyPassword,
+)
+val releaseSigningConfigured = releaseSigningValues.all { !it.isNullOrBlank() }
+val releaseSigningPartiallyConfigured = releaseSigningValues.any { !it.isNullOrBlank() }
+val requireReleaseSigning =
+    providers.environmentVariable("WSC_REQUIRE_RELEASE_SIGNING").orNull == "true"
+
+if (releaseSigningPartiallyConfigured && !releaseSigningConfigured) {
+    throw GradleException(
+        "Incomplete WSC release signing configuration. " +
+            "Set WSC_RELEASE_STORE_FILE, WSC_RELEASE_STORE_PASSWORD, " +
+            "WSC_RELEASE_KEY_ALIAS and WSC_RELEASE_KEY_PASSWORD."
+    )
+}
+if (requireReleaseSigning && !releaseSigningConfigured) {
+    throw GradleException("Release signing is required but no complete signing configuration was provided.")
+}
+
 android {
     namespace = "dev.wsc.launcher"
     compileSdk = 35
@@ -9,6 +36,25 @@ android {
         versionCode = 9
         versionName = "1.0"
     }
+
+    val wscReleaseSigning = if (releaseSigningConfigured) {
+        signingConfigs.create("wscRelease") {
+            storeFile = file(releaseStoreFile!!)
+            storePassword = releaseStorePassword!!
+            keyAlias = releaseKeyAlias!!
+            keyPassword = releaseKeyPassword!!
+            storeType = "JKS"
+        }
+    } else {
+        null
+    }
+
+    buildTypes {
+        getByName("release") {
+            wscReleaseSigning?.let { signingConfig = it }
+        }
+    }
+
     splits {
         abi {
             isEnable = true
