@@ -121,7 +121,7 @@ jobs:
           test -n "${WSC_RELEASE_KEY_ALIAS}" || { echo "Missing WSC_RELEASE_KEY_ALIAS."; exit 1; }
           test -n "${WSC_RELEASE_KEY_PASSWORD}" || { echo "Missing WSC_RELEASE_KEY_PASSWORD."; exit 1; }
           chmod +x gradlew
-          ./gradlew --no-daemon :app:testDebugUnitTest :app:lintDebug :app:assembleRelease
+          ./gradlew --no-daemon :app:testDebugUnitTest :app:testReleaseUnitTest :app:lintDebug :app:assembleRelease
 
       - name: Validate signed release artifacts
         shell: bash

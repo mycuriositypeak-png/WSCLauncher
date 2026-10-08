@@ -43,7 +43,9 @@ final class GuestRuntime {
             if (previous != null) previous.uncaughtException(thread, error);
         });
         try {
-            log("PRECHECK: processo " + android.os.Process.myPid() + "; 64 bits=" + android.os.Process.is64Bit(), null);
+            log("PRECHECK: processo " + android.os.Process.myPid() + "; 64 bits=" + android.os.Process.is64Bit()
+                    + "; depurável=" + ((context.getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0)
+                    + "; bootstrap=context-before-create-v2", null);
             game = context.createPackageContext(TARGET, Context.CONTEXT_INCLUDE_CODE | Context.CONTEXT_IGNORE_SECURITY);
             ApplicationInfo info = context.getPackageManager().getApplicationInfo(TARGET, PackageManager.GET_META_DATA);
             Intent launch = context.getPackageManager().getLaunchIntentForPackage(TARGET);
@@ -96,6 +98,17 @@ final class GuestRuntime {
 
     private static String processAbi() {
         return android.os.Process.is64Bit() ? "arm64-v8a" : "armeabi-v7a";
+    }
+
+    static String requireCocosLibrary(Context activity) throws PackageManager.NameNotFoundException {
+        String packageName = activity.getPackageName();
+        if (!TARGET.equals(packageName))
+            throw new IllegalStateException("O contexto do jogo não foi anexado à Activity. Pacote: " + packageName);
+        ApplicationInfo original = activity.getPackageManager().getApplicationInfo(TARGET, PackageManager.GET_META_DATA);
+        String library = original.metaData == null ? null : original.metaData.getString("android.app.lib_name");
+        if (library == null || library.trim().isEmpty())
+            throw new IllegalStateException("O jogo instalado não declarou android.app.lib_name para o Cocos.");
+        return library;
     }
 
     private static Map<String,String> collectLibraries(ApplicationInfo info) throws IOException {
@@ -177,20 +190,8 @@ final class GuestRuntime {
                 frame.setResult(guest);
             }
         });
-        // Do not hook Activity.attach: keep framework tokens and host bookkeeping intact.
-        // Wrap only the base context when the guest Activity receives it.
-        Method attachBase = android.view.ContextThemeWrapper.class.getDeclaredMethod("attachBaseContext", Context.class);
-        Pine.hook(attachBase, new MethodHook() {
-            @Override public void beforeCall(Pine.CallFrame frame) {
-                if (activityClass == null || !activityClass.isInstance(frame.thisObject)) return;
-                log("ACTIVITY: attachBaseContext iniciado.", null);
-                frame.args[0] = new GuestContext((Context) frame.args[0], game);
-            }
-            @Override public void afterCall(Pine.CallFrame frame) {
-                if (activityClass == null || !activityClass.isInstance(frame.thisObject)) return;
-                log("ACTIVITY: attachBaseContext " + (frame.hasThrowable() ? "FALHOU" : "concluído"), frame.getThrowable());
-            }
-        });
+        // Context adaptation happens directly before onCreate below. Framework
+        // attachment entry-point hooks are skipped on the observed release path.
         Pine.hook(Activity.class.getDeclaredMethod("getApplication"), new MethodHook() {
             @Override public void beforeCall(Pine.CallFrame frame) {
                 if (activityClass != null && activityClass.isInstance(frame.thisObject) && gameApplication != null)
@@ -211,6 +212,16 @@ final class GuestRuntime {
                             + "; isTaskRoot=" + current.isTaskRoot() + "; isFinishing=" + current.isFinishing(), null);
                     if (method.getName().equals("callActivityOnCreate")) {
                         Activity guest = (Activity) frame.args[0];
+                        try {
+                            boolean changed = GuestContext.bindBeforeCreate(guest, activityClass, game);
+                            log("ACTIVITY: contexto antes de onCreate; aplicado=" + changed
+                                    + "; base=" + guest.getBaseContext().getClass().getName(), null);
+                            String library = requireCocosLibrary(guest);
+                            log("ACTIVITY: contexto confirmado; pacote=" + guest.getPackageName() + "; biblioteca Cocos=" + library, null);
+                        } catch (Exception error) {
+                            frame.setThrowable(error); // Pine logs/ignores thrown callback exceptions; return the failure explicitly.
+                            return;
+                        }
                         if (nativeMods.hasModules()) NativeModBridge.attach(guest);
                         // The Activity is still registered as the host's stub in Android's bookkeeping.
                         Intent intent = new Intent(guest.getIntent());

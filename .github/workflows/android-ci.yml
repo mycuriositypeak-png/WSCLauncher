@@ -72,12 +72,12 @@ jobs:
             -o examples/player-roles/build/host-tests/profile-test
           examples/player-roles/build/host-tests/profile-test
 
-      - name: Unit tests, lint and debug APKs
+      - name: Debug/release unit tests, lint and debug APKs
         shell: bash
         run: |
           set -euo pipefail
           chmod +x gradlew
-          ./gradlew --no-daemon :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
+          ./gradlew --no-daemon :app:testDebugUnitTest :app:testReleaseUnitTest :app:lintDebug :app:assembleDebug
 
       - name: Validate debug APK set
         shell: bash
