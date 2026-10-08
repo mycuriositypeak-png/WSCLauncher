@@ -6,7 +6,7 @@ Instale World Soccer Champs (`com.monkeyibrow.worldsoccerchamps`) com todos os s
 
 ## ABI incompatível
 
-O launcher e as bibliotecas do jogo precisam ter a mesma ABI. Instale `WSCLauncher-1.0-arm64.apk` para ARM64 ou `WSCLauncher-1.0-arm32.apk` para ARM32; suporte ARM64 do aparelho não comprova a ABI da instalação. Confira `ARQUITETURAS DO JOGO`, `ABI DO PROCESSO` e `DIRETÓRIO NATIVO` no diagnóstico. Player Roles 0.4 inclui as duas ABIs; outros mods podem fornecer somente uma. O universal contém ambas as bibliotecas do launcher, mas normalmente roda em ARM64 num dispositivo ARM64. Para WSC instalado somente em ARM32, use o APK ARM32 do launcher. A Home mostra a incompatibilidade e mantém Jogar desabilitado.
+O launcher e as bibliotecas do jogo precisam ter a mesma ABI. Instale `WSCLauncher-<versão>-arm64.apk` para ARM64 ou `WSCLauncher-<versão>-arm32.apk` para ARM32; suporte ARM64 do aparelho não comprova a ABI da instalação. Confira `ARQUITETURAS DO JOGO`, `ABI DO PROCESSO` e `DIRETÓRIO NATIVO` no diagnóstico. Player Roles 0.4 inclui as duas ABIs; outros mods podem fornecer somente uma. O universal contém ambas as bibliotecas do launcher, mas normalmente roda em ARM64 num dispositivo ARM64. Para WSC instalado somente em ARM32, use o APK ARM32 do launcher. A Home mostra a incompatibilidade e mantém Jogar desabilitado.
 
 ## Versão ou hash incompatível
 
@@ -16,7 +16,7 @@ Hash incorreto do payload indica pacote corrompido ou biblioteca instalada alter
 
 ## Formato antigo ou mod já instalado
 
-Somente `native` / formato 2 / Native Mod ABI v1 é aceito. Remova os mods declarativos antigos usando a versão anterior do launcher **antes de atualizar**: manifests persistidos antigos também são rejeitados pela versão 1.0 e podem impedir a listagem. Não limpe os dados do aplicativo como primeira tentativa, pois isso também apaga saves do sandbox do launcher.
+Somente `native` / formato 2 / Native Mod ABI v1 é aceito. Remova os mods declarativos antigos usando a versão anterior do launcher **antes de atualizar**: manifests persistidos antigos também são rejeitados pela linha 1.x e podem impedir a listagem. Não limpe os dados do aplicativo como primeira tentativa, pois isso também apaga saves do sandbox do launcher.
 
 Para atualizar Player Roles, salve o jogo, remova somente o mod instalado e importe seu ZIP 0.4. O importador não sobrescreve um ID existente. Código-fonte e ZIP ficam em [examples/player-roles](../examples/player-roles/README.md).
 

@@ -22,6 +22,8 @@
 
 This project **does not include the original game APK, assets, or native libraries**. You must have your own copy of the game installed.
 
+> WSCLauncher is an unofficial community project and is not affiliated with, endorsed by, or sponsored by the developers or publishers of World Soccer Champs.
+
 ## 📦 Compatibility
 
 - ✅ Android 7+ (API 24)
@@ -82,9 +84,9 @@ python3 scripts/build-native.py --ndk "$ANDROID_NDK_HOME"
 The build generates:
 
 ```text
-WSCLauncher-1.0-universal.apk
-WSCLauncher-1.0-arm64.apk
-WSCLauncher-1.0-arm32.apk
+WSCLauncher-<version>-universal.apk
+WSCLauncher-<version>-arm64.apk
+WSCLauncher-<version>-arm32.apk
 ```
 
 ## 📚 Documentation

@@ -129,7 +129,5 @@ jobs:
           if-no-files-found: error
           retention-days: 14
           path: |
-            app/build/outputs/apk/debug/WSCLauncher-${APP_VERSION}-universal.apk
-            app/build/outputs/apk/debug/WSCLauncher-${APP_VERSION}-arm64.apk
-            app/build/outputs/apk/debug/WSCLauncher-${APP_VERSION}-arm32.apk
+            app/build/outputs/apk/debug/*.apk
             examples/player-roles/wsc-player-roles-picker-v0.4.zip

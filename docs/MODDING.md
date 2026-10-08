@@ -1,6 +1,6 @@
 # Mods nativos
 
-WSCLauncher 1.0 aceita exclusivamente **ZIPs de módulos nativos executáveis**, com **manifest formato 2**, `type: native` e **Native Mod ABI v1** (`api: 1`). O formato antigo `plist-patch` foi removido e seus manifests são rejeitados.
+WSCLauncher 1.x aceita exclusivamente **ZIPs de módulos nativos executáveis**, com **manifest formato 2**, `type: native` e **Native Mod ABI v1** (`api: 1`). O formato antigo `plist-patch` foi removido e seus manifests são rejeitados.
 
 Native Mod ABI v1 é a interface mínima entre o launcher e módulos nativos. Ela não é uma API de gameplay do World Soccer Champs. A versão da ABI é independente da versão do launcher. O [header](../native/include/wsc_mod_api.h) continua com o layout `WscHostV1` usado pelo [Player Roles Picker 0.4](../examples/player-roles/README.md).
 

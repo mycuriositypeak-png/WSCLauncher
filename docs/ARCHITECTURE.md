@@ -1,6 +1,6 @@
 # Arquitetura
 
-**WSCLauncher 1.0** é o aplicativo Android (`dev.wsc.launcher`). **Native Mod ABI v1** é a interface entre o launcher e módulos nativos, versionada independentemente. Uma futura versão do aplicativo pode continuar usando ABI v1. Ela não é uma API de gameplay do World Soccer Champs.
+**WSCLauncher 1.x** é o aplicativo Android (`dev.wsc.launcher`). **Native Mod ABI v1** é a interface entre o launcher e módulos nativos, versionada independentemente. Uma futura versão do aplicativo pode continuar usando ABI v1. Ela não é uma API de gameplay do World Soccer Champs.
 
 ## Hospedagem do jogo
 
@@ -28,4 +28,4 @@ Não há **hot unload**: mesmo um módulo cuja inicialização falhou permanece 
 
 O processo principal continua disponível após uma falha do guest. O arquivo de diagnóstico inclui ciclo de vida, seleção instalada/carregada, logcat com rotação e registros/traces de encerramento disponíveis no Android. `onResume` comprova apenas uma etapa do bootstrap; sucesso funcional exige conferir menu e partida no aparelho.
 
-O launcher suporta Android 7+, ARM32 e ARM64 com APK universal e APKs específicos. O processo não troca de ABI; a UI detecta incompatibilidade com a instalação do jogo antes do início. Player Roles 0.4 possui perfis ARM64 e ARM32 de WSC 2026.12 (468), compilados e verificados estaticamente, com validação manual da nova versão ainda pendente. Não há garantia de compatibilidade com versões diferentes, serviços Play ou todos os mecanismos de proteção do jogo.
+O launcher suporta Android 7+, ARM32 e ARM64 com APK universal e APKs específicos. O processo não troca de ABI; a UI detecta incompatibilidade com a instalação do jogo antes do início. Player Roles 0.4 possui perfis ARM64 e ARM32 de WSC 2026.12 (468), compilados, verificados estaticamente e testados manualmente em runtime nas duas arquiteturas. Não há garantia de compatibilidade com versões diferentes, serviços Play ou todos os mecanismos de proteção do jogo.
