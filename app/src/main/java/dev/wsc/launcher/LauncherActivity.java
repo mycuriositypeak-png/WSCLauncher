@@ -50,7 +50,10 @@ public final class LauncherActivity extends AppCompatActivity {
         });
         navigation.setSelectedItemId(selectedTab);
         model.states().observe(this, value -> {
-            state = value; render();
+            boolean progressOnly = state != null && state.busy == R.string.busy_data_export
+                    && value.busy == state.busy && value.event == state.event;
+            state = value;
+            if (progressOnly) renderProgress(); else render();
             if (value.event > handledEvent) {
                 handledEvent = value.event;
                 if (value.error != null) errorNotice(value.notice, value.error);
@@ -75,14 +78,23 @@ public final class LauncherActivity extends AppCompatActivity {
             toolbar.setOnMenuItemClickListener(item -> { if (state.busy == 0) model.refresh(); return true; });
             toolbar.getMenu().findItem(R.id.action_refresh).setEnabled(state.busy == 0);
         }
-        LinearProgressIndicator progress = findViewById(R.id.progress);
-        progress.setVisibility(state.busy == 0 ? View.INVISIBLE : View.VISIBLE);
-        TextView label = findViewById(R.id.progress_label);
-        label.setVisibility(state.busy == 0 ? View.GONE : View.VISIBLE);
-        if (state.busy != 0) label.setText(state.busy);
+        renderProgress();
         if (selectedTab == R.id.nav_home) home();
         else if (selectedTab == R.id.nav_mods) mods();
         else settings();
+    }
+    private void renderProgress() {
+        LinearProgressIndicator progress = findViewById(R.id.progress);
+        boolean indeterminate = state.progress < 0;
+        if (progress.isIndeterminate() != indeterminate) {
+            progress.setVisibility(View.INVISIBLE); progress.setIndeterminate(indeterminate);
+        }
+        if (!indeterminate) progress.setProgressCompat(state.progress, false);
+        progress.setVisibility(state.busy == 0 ? View.INVISIBLE : View.VISIBLE);
+        TextView label = findViewById(R.id.progress_label);
+        label.setVisibility(state.busy == 0 ? View.GONE : View.VISIBLE);
+        if (state.busy != 0) label.setText(indeterminate ? getString(state.busy)
+                : getString(R.string.data_export_progress, state.progress));
     }
     private boolean usable() { return state.loaded && state.busy == 0; }
     private String activeCount() { if (state.enabled.isEmpty()) return getString(R.string.no_active_mods); return getResources().getQuantityString(R.plurals.active_mods, state.enabled.size(), state.enabled.size()); }
@@ -249,6 +261,32 @@ public final class LauncherActivity extends AppCompatActivity {
         document.putExtra(Intent.EXTRA_TITLE, "wsc-diagnostico.zip");
         try { startActivityForResult(document, 40); } catch (Exception error) { errorNotice(R.string.error_title, error); }
     }
+    private void chooseDataExport() {
+        if (state.busy != 0) return;
+        GameDataArchive.Mode[] modes = {GameDataArchive.Mode.FULL, GameDataArchive.Mode.LIGHT};
+        int[] selected = {1};
+        LinearLayout details = ui.column();
+        details.setPadding(ui.dp(24), ui.dp(8), ui.dp(24), 0);
+        TextView description = ui.body(getText(R.string.data_export_light_note));
+        ui.add(details, description, 12); ui.add(details, ui.body(getText(R.string.data_export_save_note)), 0);
+        new MaterialAlertDialogBuilder(this).setTitle(R.string.export_game_data)
+                .setSingleChoiceItems(new String[]{getString(R.string.data_export_full), getString(R.string.data_export_light)}, 1,
+                        (dialog, which) -> {
+                            selected[0] = which;
+                            description.setText(which == 0 ? R.string.data_export_full_note : R.string.data_export_light_note);
+                        })
+                .setView(details).setNegativeButton(R.string.cancel, null)
+                .setPositiveButton(R.string.data_export_choose_destination, (dialog, which) -> pickGameDataExport(modes[selected[0]])).show();
+    }
+    private void pickGameDataExport(GameDataArchive.Mode mode) {
+        if (state.busy != 0) return;
+        String stamp = new java.text.SimpleDateFormat("yyyyMMdd-HHmmss", Locale.ROOT).format(new Date());
+        String name = "wsc-dados-" + (mode == GameDataArchive.Mode.FULL ? "completos-" : "leves-") + stamp + ".zip";
+        Intent document = new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("application/zip");
+        document.putExtra(Intent.EXTRA_TITLE, name);
+        try { startActivityForResult(document, mode == GameDataArchive.Mode.FULL ? 42 : 43); }
+        catch (Exception error) { errorNotice(R.string.error_title, error); }
+    }
     private void settings() {
         LinearLayout page = ui.column();
         ui.section(page, R.string.section_appearance);
@@ -263,6 +301,10 @@ public final class LauncherActivity extends AppCompatActivity {
         ui.add(appearance, ui.setting(R.drawable.ic_color_lens, R.string.dynamic_colors,
                 getText(android.os.Build.VERSION.SDK_INT >= 31 ? R.string.dynamic_colors_note : R.string.dynamic_unavailable), dynamic, null), 0);
         ui.add(page, appearance, 0);
+        ui.section(page, R.string.section_game_data);
+        View gameData = ui.setting(R.drawable.ic_download, R.string.export_game_data, getText(R.string.export_game_data_note), null, this::chooseDataExport);
+        gameData.setId(R.id.export_game_data_button); gameData.setEnabled(state.busy == 0);
+        ui.add(page, gameData, 0);
         ui.section(page, R.string.section_diagnostics);
         LinearLayout diagnostics = ui.column();
         ui.add(diagnostics, ui.setting(R.drawable.ic_article, R.string.view_logs, getText(R.string.view_logs_note), null, () -> document("logs")), 0);
@@ -329,5 +371,7 @@ public final class LauncherActivity extends AppCompatActivity {
         super.onActivityResult(request, result, data);
         if (result != RESULT_OK || data == null || data.getData() == null) return;
         if (request == 41) model.install(data.getData()); else if (request == 40) model.export(data.getData());
+        else if (request == 42 || request == 43)
+            model.exportGameData(data.getData(), request == 42 ? GameDataArchive.Mode.FULL : GameDataArchive.Mode.LIGHT);
     }
 }

@@ -183,9 +183,11 @@ jobs:
             sha256sum WSCLauncher-*.apk wsc-player-roles-picker-v*.zip > SHA256SUMS.txt
           )
 
-          cat > release-notes.md <<EOF
-          ## WSCLauncher ${GITHUB_REF_NAME#v}
-
+          if test -f "docs/releases/${APP_VERSION}.md"; then
+            cp "docs/releases/${APP_VERSION}.md" release-notes.md
+          else
+            printf '## WSCLauncher %s\n\n' "${APP_VERSION}" > release-notes.md
+            cat >> release-notes.md <<'EOF'
           ### 📦 Downloads
 
           - **Universal** — recommended for most devices.
@@ -199,6 +201,7 @@ jobs:
 
           > WSCLauncher does not include World Soccer Champs, its APK, assets, or proprietary game libraries.
           EOF
+          fi
 
           cat dist/SHA256SUMS.txt
 

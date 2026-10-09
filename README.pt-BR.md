@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <strong>Versão 1.0.2</strong> · Android 7+ · ARM64 / ARM32
+  <strong>Versão 1.0.4</strong> · Android 7+ · ARM64 / ARM32
 </p>
 
 ## ✨ Sobre
@@ -64,7 +64,7 @@ O launcher possui três áreas principais:
 
 - 🏠 **Início** — status do jogo, compatibilidade e botão Jogar
 - 🧩 **Mods** — importar, ativar, desativar, ver detalhes e remover mods
-- ⚙️ **Configurações** — idioma, tema, logs, diagnóstico e licenças
+- ⚙️ **Configurações** — idioma, tema, exportação completa ou leve dos dados do jogo com progresso, logs, diagnóstico e licenças
 
 A interface usa Material 3, temas claro/escuro e cores dinâmicas quando disponíveis.
 

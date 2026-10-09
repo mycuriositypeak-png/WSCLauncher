@@ -19,13 +19,18 @@ public final class LauncherViewModel extends AndroidViewModel {
         final List<ModSpec> mods;
         final Set<String> enabled;
         final boolean loaded;
-        final int busy, notice;
+        final int busy, notice, progress;
         final long event;
         final Exception error, launchBlock;
         State(GameStatus game, List<ModSpec> mods, Set<String> enabled, boolean loaded, int busy,
               int notice, long event, Exception error, Exception launchBlock) {
+            this(game, mods, enabled, loaded, busy, notice, event, error, launchBlock, -1);
+        }
+        State(GameStatus game, List<ModSpec> mods, Set<String> enabled, boolean loaded, int busy,
+              int notice, long event, Exception error, Exception launchBlock, int progress) {
             this.game = game; this.mods = mods; this.enabled = enabled; this.loaded = loaded; this.busy = busy;
             this.notice = notice; this.event = event; this.error = error; this.launchBlock = launchBlock;
+            this.progress = progress;
         }
     }
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
@@ -108,6 +113,37 @@ public final class LauncherViewModel extends AndroidViewModel {
                 DiagnosticArchive.write(getApplication(), output);
             }
         });
+    }
+    void exportGameData(Uri target, GameDataArchive.Mode mode) {
+        if (cleared || current.busy != 0) return;
+        working(R.string.busy_data_export);
+        worker.execute(() -> {
+            boolean destinationOpened = false;
+            try {
+                GuestSession.stopForExport(getApplication());
+                GameDataArchive.Plan plan = GameDataArchive.scan(getApplication().getDataDir(), mode);
+                try (OutputStream output = getApplication().getContentResolver().openOutputStream(target, "wt")) {
+                    if (output == null) throw new IOException(getApplication().getString(R.string.destination_unavailable));
+                    destinationOpened = true;
+                    GameDataArchive.write(plan, output, getApplication().getPackageName(), percent ->
+                            main.post(() -> exportProgress(percent)));
+                }
+                // Export does not depend on the installed game or valid mod manifests.
+                main.post(() -> success(current, R.string.data_export_success));
+            } catch (Exception error) {
+                if (destinationOpened) {
+                    // Remove a partial document rather than presenting it as a usable backup.
+                    try { android.provider.DocumentsContract.deleteDocument(getApplication().getContentResolver(), target); }
+                    catch (Exception ignored) { }
+                }
+                main.post(() -> failure(error, R.string.error_title));
+            }
+        });
+    }
+    private void exportProgress(int percent) {
+        if (cleared || current.busy != R.string.busy_data_export) return;
+        publish(new State(current.game, current.mods, current.enabled, current.loaded, current.busy, 0,
+                current.event, null, current.launchBlock, percent));
     }
     interface LaunchReady { void ready(ModStore store); }
     void prepareLaunch(LaunchReady callback) {

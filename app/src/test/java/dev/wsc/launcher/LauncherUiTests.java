@@ -399,4 +399,97 @@ public class LauncherUiTests {
             }
         }
     }
+    @Test public void gameDataExportChoosesBothModesAndCancelsWithoutStartingWork() throws Exception {
+        try (ActivityController<LauncherActivity> controller = open()) {
+            LauncherActivity activity = controller.get(); tab(activity, R.id.nav_settings);
+            assertTrue(activity.findViewById(R.id.export_game_data_button).isEnabled());
+            activity.findViewById(R.id.export_game_data_button).performClick();
+            androidx.appcompat.app.AlertDialog dialog = (androidx.appcompat.app.AlertDialog) org.robolectric.shadows.ShadowDialog.getLatestDialog();
+            assertEquals(2, dialog.getListView().getCount()); assertEquals(1, dialog.getListView().getCheckedItemPosition());
+            assertTrue(text(dialog.getWindow().getDecorView(), activity.getString(R.string.data_export_save_note)));
+            dialog.getButton(android.content.DialogInterface.BUTTON_NEGATIVE).performClick();
+            shadowOf(Looper.getMainLooper()).idle();
+            assertNull(shadowOf(activity).getNextStartedActivityForResult()); assertEquals(0, model(activity).current().busy);
+            for (int choice : new int[]{0, 1}) {
+                activity.findViewById(R.id.export_game_data_button).performClick();
+                dialog = (androidx.appcompat.app.AlertDialog) org.robolectric.shadows.ShadowDialog.getLatestDialog();
+                dialog.getListView().performItemClick(dialog.getListView().getAdapter().getView(choice, null, dialog.getListView()), choice, choice);
+                assertTrue(text(dialog.getWindow().getDecorView(), activity.getString(choice == 0 ? R.string.data_export_full_note : R.string.data_export_light_note)));
+                dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE).performClick();
+                shadowOf(Looper.getMainLooper()).idle();
+                org.robolectric.shadows.ShadowActivity.IntentForResult request = shadowOf(activity).getNextStartedActivityForResult();
+                assertEquals(Intent.ACTION_CREATE_DOCUMENT, request.intent.getAction());
+                assertEquals("application/zip", request.intent.getType()); assertEquals(choice == 0 ? 42 : 43, request.requestCode);
+                assertTrue(request.intent.getStringExtra(Intent.EXTRA_TITLE).endsWith(".zip"));
+                activity.onActivityResult(request.requestCode, android.app.Activity.RESULT_CANCELED, null);
+                assertEquals(0, model(activity).current().busy);
+            }
+            preview(activity, "game-data-settings");
+        }
+    }
+    @Test public void gameDataPickerResultRetainsItsModeAfterRecreation() throws Exception {
+        File save = new File(app().getFilesDir(), "savegame_slot_1/data.bin"); assertTrue(save.getParentFile().mkdirs());
+        java.nio.file.Files.write(save.toPath(), "game save".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        try (ActivityController<LauncherActivity> controller = open()) {
+            LauncherActivity activity = controller.get(); tab(activity, R.id.nav_settings);
+            activity.findViewById(R.id.export_game_data_button).performClick();
+            androidx.appcompat.app.AlertDialog dialog = (androidx.appcompat.app.AlertDialog) org.robolectric.shadows.ShadowDialog.getLatestDialog();
+            dialog.getListView().performItemClick(dialog.getListView().getAdapter().getView(0, null, dialog.getListView()), 0, 0);
+            dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE).performClick();
+            shadowOf(Looper.getMainLooper()).idle();
+            int request = shadowOf(activity).getNextStartedActivityForResult().requestCode;
+            controller.recreate(); activity = controller.get(); await(activity);
+            File target = new File(app().getCacheDir(), "game-data-rotation.zip");
+            activity.onActivityResult(request, android.app.Activity.RESULT_OK, new Intent().setData(Uri.fromFile(target)));
+            await(activity);
+            assertNull(model(activity).current().error); assertEquals(R.string.data_export_success, model(activity).current().notice);
+            try (java.util.zip.ZipFile zip = new java.util.zip.ZipFile(target)) {
+                assertNotNull(zip.getEntry("data/files/savegame_slot_1/data.bin"));
+                assertTrue(new String(zip.getInputStream(zip.getEntry("wsc-export.json")).readAllBytes(), java.nio.charset.StandardCharsets.UTF_8).contains("\"mode\": \"full\""));
+            }
+            assertEquals("game save", new String(java.nio.file.Files.readAllBytes(save.toPath()), java.nio.charset.StandardCharsets.UTF_8));
+        }
+    }
+    @Test public void gameDataProgressSurvivesRotationAndBlocksAnotherExport() throws Exception {
+        File save = new File(app().getFilesDir(), "savegame_slot_1/data.bin"); assertTrue(save.getParentFile().mkdirs());
+        byte[] bytes = new byte[1024*1024]; new java.util.Random(42).nextBytes(bytes); java.nio.file.Files.write(save.toPath(), bytes);
+        java.util.concurrent.CountDownLatch blocked = new java.util.concurrent.CountDownLatch(1);
+        java.util.concurrent.CountDownLatch release = new java.util.concurrent.CountDownLatch(1);
+        ByteArrayOutputStream destination = new ByteArrayOutputStream() {
+            @Override public synchronized void write(byte[] data, int offset, int size) {
+                if (count > 128*1024 && release.getCount() != 0) {
+                    blocked.countDown();
+                    try { if (!release.await(10, java.util.concurrent.TimeUnit.SECONDS)) throw new IllegalStateException("Test output timed out"); }
+                    catch (InterruptedException e) { Thread.currentThread().interrupt(); throw new IllegalStateException(e); }
+                }
+                super.write(data, offset, size);
+            }
+        };
+        Uri target = Uri.parse("content://test.documents/export.zip"); shadowOf(app().getContentResolver()).registerOutputStream(target, destination);
+        try (ActivityController<LauncherActivity> controller = open()) {
+            LauncherActivity activity = controller.get(); tab(activity, R.id.nav_settings);
+            model(activity).exportGameData(target, GameDataArchive.Mode.LIGHT);
+            assertTrue(blocked.await(5, java.util.concurrent.TimeUnit.SECONDS)); shadowOf(Looper.getMainLooper()).idle();
+            assertEquals(R.string.busy_data_export, model(activity).current().busy);
+            assertTrue(model(activity).current().progress > 0); assertTrue(model(activity).current().progress < 100);
+            assertFalse(activity.findViewById(R.id.export_game_data_button).isEnabled());
+            assertFalse(((com.google.android.material.progressindicator.LinearProgressIndicator)activity.findViewById(R.id.progress)).isIndeterminate());
+            LauncherViewModel retained = model(activity);
+            controller.recreate(); activity = controller.get(); shadowOf(Looper.getMainLooper()).idle();
+            assertSame(retained, model(activity));
+            assertTrue(((TextView)activity.findViewById(R.id.progress_label)).getText().toString().contains("%"));
+            preview(activity, "game-data-progress");
+            release.countDown(); await(activity);
+            assertNull(model(activity).current().error); assertEquals(R.string.data_export_success, model(activity).current().notice);
+            assertTrue(activity.findViewById(R.id.export_game_data_button).isEnabled());
+            assertArrayEquals(bytes, java.nio.file.Files.readAllBytes(save.toPath()));
+            try (java.util.zip.ZipInputStream zip = new java.util.zip.ZipInputStream(new ByteArrayInputStream(destination.toByteArray()))) {
+                java.util.zip.ZipEntry entry; boolean found = false;
+                while ((entry = zip.getNextEntry()) != null) if (entry.getName().equals("data/files/savegame_slot_1/data.bin")) {
+                    assertArrayEquals(bytes, zip.readAllBytes()); found = true;
+                }
+                assertTrue(found);
+            }
+        } finally { release.countDown(); }
+    }
 }

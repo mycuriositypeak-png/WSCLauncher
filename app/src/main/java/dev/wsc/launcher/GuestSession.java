@@ -3,6 +3,7 @@ package dev.wsc.launcher;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Handler;
 import android.os.Looper;
@@ -14,12 +15,34 @@ import java.util.List;
 
 /** Restart only our own guest process when its loaded mod set differs from disk. */
 final class GuestSession {
-    static int pid(Activity activity) {
+    static int pid(Context activity) {
         ActivityManager manager = (ActivityManager) activity.getSystemService(Activity.ACTIVITY_SERVICE);
         List<ActivityManager.RunningAppProcessInfo> processes = manager.getRunningAppProcesses();
         if (processes != null) for (ActivityManager.RunningAppProcessInfo process : processes)
-            if (process.uid == Process.myUid() && process.processName.equals(activity.getPackageName() + ":guest")) return process.pid;
+            if (process.pid > 0 && process.pid != Process.myPid() && process.uid == Process.myUid()
+                    && process.processName.equals(activity.getPackageName() + ":guest")) return process.pid;
         return -1;
+    }
+    /** Called on the export worker after the user has been told to save the game. */
+    static void stopForExport(Context context) throws IOException {
+        int guest = pid(context);
+        if (guest < 0) return;
+        ActivityManager manager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+        ComponentName stub = new ComponentName(context, GuestStubActivity.class);
+        for (ActivityManager.AppTask task : manager.getAppTasks()) {
+            ActivityManager.RecentTaskInfo info = task.getTaskInfo();
+            if (info.baseIntent != null && stub.equals(info.baseIntent.getComponent())) task.finishAndRemoveTask();
+        }
+        stopCollector(context, guest);
+        if (pid(context) == guest) Process.killProcess(guest);
+        for (int attempt = 0; attempt < 30; attempt++) {
+            if (pid(context) < 0) return;
+            try { Thread.sleep(100); }
+            catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt(); throw new IOException(context.getString(R.string.data_export_stop_failed), interrupted);
+            }
+        }
+        throw new IOException(context.getString(R.string.data_export_stop_failed));
     }
     static boolean needsRestart(Activity activity, ModStore store) throws IOException {
         if (pid(activity) < 0) return false;
@@ -60,7 +83,7 @@ final class GuestSession {
         if (clean) intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
         activity.startActivity(intent);
     }
-    private static void stopCollector(Activity activity, int parent) {
+    private static void stopCollector(Context activity, int parent) {
         // logcat can outlive its parent. Read only children of the verified, own guest PID.
         File children = new File("/proc/" + parent + "/task/" + parent + "/children");
         try (InputStream input = new FileInputStream(children)) {

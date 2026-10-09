@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <strong>Versión 1.0.2</strong> · Android 7+ · ARM64 / ARM32
+  <strong>Versión 1.0.4</strong> · Android 7+ · ARM64 / ARM32
 </p>
 
 ## ✨ Acerca de
@@ -64,7 +64,7 @@ WSCLauncher tiene tres secciones principales:
 
 - 🏠 **Inicio** — estado del juego, compatibilidad y botón Jugar
 - 🧩 **Mods** — importar, activar, desactivar, ver detalles y eliminar mods
-- ⚙️ **Configuración** — idioma, tema, logs, diagnóstico y licencias
+- ⚙️ **Configuración** — idioma, tema, exportación completa o ligera de los datos del juego con progreso, logs, diagnóstico y licencias
 
 La interfaz usa Material 3, temas claro/oscuro y colores dinámicos cuando están disponibles.
 
