@@ -2,6 +2,7 @@ package dev.wsc.launcher;
 
 import android.content.Context;
 import android.os.Build;
+import android.util.Log;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Member;
@@ -199,7 +200,7 @@ public final class Hooker {
             return frame.result;
         } catch (Throwable t) {
             // LSPlant logs/ignores exceptions thrown by callbacks; return the failure explicitly.
-            GuestRuntime.log("PINE_COMPAT: callback exception", t);
+            Log.d("Hooker", "PINE_COMPAT: callback exception", t);
             if (t instanceof RuntimeException) throw (RuntimeException) t;
             if (t instanceof Error) throw (Error) t;
             throw new RuntimeException(t);
@@ -231,10 +232,10 @@ public final class Hooker {
             if (CallFrame.backend == CallFrame.BACKEND_LSPLANT) {
                 return hookViaLsplant(target, hook);
             }
-            GuestRuntime.log("HOOKER: no backend available; cannot hook " + target, null);
+            Log.d("Hooker", "HOOKER: no backend available; cannot hook " + target);
             return null;
         } catch (Throwable t) {
-            GuestRuntime.log("HOOKER: hook threw for " + target, t);
+            Log.d("Hooker", "HOOKER: hook threw for " + target, t);
             return null;
         }
     }
@@ -255,7 +256,7 @@ public final class Hooker {
         try {
             return doUnhook(target);
         } catch (Throwable t) {
-            GuestRuntime.log("LSPLANT: unhook threw for " + target, t);
+            Log.d("Hooker", "LSPLANT: unhook threw for " + target, t);
             return false;
         }
     }
@@ -280,7 +281,7 @@ public final class Hooker {
                 try {
                     hook.beforeCall(ours);
                 } catch (Throwable t) {
-                    GuestRuntime.log("PINE: beforeCall threw", t);
+                    Log.d("Hooker", "PINE: beforeCall threw", t);
                     frame.setThrowable(t);
                     return;
                 }
@@ -301,7 +302,7 @@ public final class Hooker {
                 try {
                     hook.afterCall(ours);
                 } catch (Throwable t) {
-                    GuestRuntime.log("PINE: afterCall threw", t);
+                    Log.d("Hooker", "PINE: afterCall threw", t);
                     frame.setThrowable(t);
                     return;
                 }
@@ -332,14 +333,14 @@ public final class Hooker {
             Hooker h = new Hooker(hook, isStatic, target);
             Method backup = h.doHook(target, h.callbackMethod);
             if (backup == null) {
-                GuestRuntime.log("LSPLANT: hook failed for " + target, null);
+                Log.d("Hooker", "LSPLANT: hook failed for " + target);
                 return null;
             }
             h.backup = backup;
             backup.setAccessible(true);
             return h;
         } catch (Throwable t) {
-            GuestRuntime.log("LSPLANT: hook threw for " + target, t);
+            Log.d("Hooker", "LSPLANT: hook threw for " + target, t);
             return null;
         }
     }
@@ -367,24 +368,24 @@ public final class Hooker {
         int sdk = Build.VERSION.SDK_INT;
         // User preference overrides the auto strategy.
         int pref = appContext != null ? UiPreferences.hookBackend(appContext) : UiPreferences.HOOK_AUTO;
-        GuestRuntime.log("HOOKER: pref=" + prefName(pref) + " android=" + sdk, null);
+        Log.d("Hooker", "HOOKER: pref=" + prefName(pref) + " android=" + sdk);
 
         if (pref == UiPreferences.HOOK_LSPLANT) {
             // User explicitly forced LSPlant (e.g. on Android 14+ to test new behavior).
             if (initLsplant()) {
                 CallFrame.backend = CallFrame.BACKEND_LSPLANT;
-                GuestRuntime.log("HOOKER: using LSPlant (forced by user, Android " + sdk + ")", null);
+                Log.d("Hooker", "HOOKER: using LSPlant (forced by user, Android " + sdk + ")");
                 return;
             }
-            GuestRuntime.log("HOOKER: LSPlant init failed (forced); falling back to Pine", null);
+            Log.d("Hooker", "HOOKER: LSPlant init failed (forced); falling back to Pine");
         } else if (pref == UiPreferences.HOOK_PINE) {
             // User explicitly forced Pine (e.g. on Android 11 where Pine might work on this ROM).
             if (initPine()) {
                 CallFrame.backend = CallFrame.BACKEND_PINE;
-                GuestRuntime.log("HOOKER: using Pine (forced by user, Android " + sdk + ")", null);
+                Log.d("Hooker", "HOOKER: using Pine (forced by user, Android " + sdk + ")");
                 return;
             }
-            GuestRuntime.log("HOOKER: Pine init failed (forced); falling back to LSPlant", null);
+            Log.d("Hooker", "HOOKER: Pine init failed (forced); falling back to LSPlant");
         }
 
         // Auto strategy (default):
@@ -394,22 +395,22 @@ public final class Hooker {
         if (sdk >= 34) {
             if (initPine()) {
                 CallFrame.backend = CallFrame.BACKEND_PINE;
-                GuestRuntime.log("HOOKER: using Pine (Android " + sdk + ")", null);
+                Log.d("Hooker", "HOOKER: using Pine (Android " + sdk + ")");
                 return;
             }
-            GuestRuntime.log("HOOKER: Pine init failed; falling back to LSPlant", null);
+            Log.d("Hooker", "HOOKER: Pine init failed; falling back to LSPlant");
         }
         if (initLsplant()) {
             CallFrame.backend = CallFrame.BACKEND_LSPLANT;
-            GuestRuntime.log("HOOKER: using LSPlant (Android " + sdk + ")", null);
+            Log.d("Hooker", "HOOKER: using LSPlant (Android " + sdk + ")");
             return;
         }
         if (initPine()) {
             CallFrame.backend = CallFrame.BACKEND_PINE;
-            GuestRuntime.log("HOOKER: using Pine (fallback, Android " + sdk + ")", null);
+            Log.d("Hooker", "HOOKER: using Pine (fallback, Android " + sdk + ")");
             return;
         }
-        GuestRuntime.log("HOOKER: no backend could be initialized; Java hooks unavailable", null);
+        Log.d("Hooker", "HOOKER: no backend could be initialized; Java hooks unavailable");
         CallFrame.backend = CallFrame.BACKEND_NONE;
     }
 
@@ -424,7 +425,7 @@ public final class Hooker {
             // (debuggable-only auto-init, etc.) are sufficient for our sideload-only use.
             return true;
         } catch (Throwable t) {
-            GuestRuntime.log("HOOKER: Pine init failed", t);
+            Log.d("Hooker", "HOOKER: Pine init failed", t);
             return false;
         }
     }
@@ -440,14 +441,14 @@ public final class Hooker {
             try {
                 System.loadLibrary("wscmodhost");
             } catch (UnsatisfiedLinkError t) {
-                GuestRuntime.log("LSPLANT: failed to load libwscmodhost.so", t);
+                Log.d("Hooker", "LSPLANT: failed to load libwscmodhost.so", t);
                 throw t;
             }
             // lsplant::Init is called from JNI_OnLoad of libwscmodhost.so. If it fails,
             // doHook() will return null on first hook and we'll log it.
             return true;
         } catch (Throwable t) {
-            GuestRuntime.log("HOOKER: LSPlant init failed", t);
+            Log.d("Hooker", "HOOKER: LSPlant init failed", t);
             return false;
         }
     }
