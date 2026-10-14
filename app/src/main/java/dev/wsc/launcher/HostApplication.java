@@ -8,6 +8,10 @@ import java.io.File;
 public final class HostApplication extends Application {
     @Override public void onCreate() {
         super.onCreate();
+        // Make the application Context available to the static Hooker facade so it
+        // can read the user-selected hooking backend (Pine / LSPlant / Auto) from
+        // SharedPreferences before installing the first Java hook.
+        Hooker.setApplicationContext(this);
         // A distinct process ensures every launch gets a clean set of hooks/runtime state.
         String process = readProcessName();
         if (process.endsWith(":guest")) GuestRuntime.prepare(this);

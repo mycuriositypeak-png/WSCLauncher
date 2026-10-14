@@ -13,6 +13,28 @@ import java.util.Locale;
 /** UI-only preferences: never change the guest context, ABI or mod settings. */
 final class UiPreferences {
     static final String FILE = "launcher-ui";
+
+    // ---- Hooking backend selection ----
+    // Persisted under "hook_backend" in the launcher-ui SharedPreferences.
+    // Although this affects the guest runtime (which Java hook library is used),
+    // we keep it in launcher-ui for simplicity — it's a UI-driven choice.
+    static final String KEY_HOOK_BACKEND = "hook_backend";
+    static final int HOOK_AUTO = 0;
+    static final int HOOK_PINE = 1;
+    static final int HOOK_LSPLANT = 2;
+
+    static int hookBackend(Context context) {
+        return context.getSharedPreferences(FILE, 0).getInt(KEY_HOOK_BACKEND, HOOK_AUTO);
+    }
+
+    static int hookBackendLabel(int value) {
+        switch (value) {
+            case HOOK_PINE: return R.string.hook_backend_pine;
+            case HOOK_LSPLANT: return R.string.hook_backend_lsplant;
+            default: return R.string.hook_backend_auto;
+        }
+    }
+
     static String language(Context context) {
         android.content.SharedPreferences preferences = context.getSharedPreferences(FILE, 0);
         // Retain selections made with the previous Portuguese/System picker.

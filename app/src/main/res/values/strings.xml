@@ -17,8 +17,8 @@
   <string name="play">Jogar</string>
   <string name="restart_game">Reiniciar com os mods</string>
   <string name="launching">Iniciando jogo…</string>
-  <string name="sandbox_title">Seu progresso, separado</string>
-  <string name="sandbox_note">O jogo usa os dados do WSCLauncher. Os saves da instalação original são independentes. Salve antes de reiniciar.</string>
+  <string name="sandbox_title">Jogo não abre? Leia isto</string>
+  <string name="sandbox_note">Se o jogo não iniciar (crashar ou fechar sozinho), vá em Configurações → Backend Java e troque entre Pine e LSPlant. Cada aparelho responde diferente conforme a versão do Android. O progresso também fica separado da instalação original — salve antes de reiniciar.</string>
   <string name="manage_mods">Gerenciar mods</string>
   <string name="add_mod">Adicionar mod</string>
   <string name="mods_empty_title">Nenhum mod instalado</string>
@@ -54,6 +54,15 @@
   <string name="remove_title">Remover %1$s?</string>
   <string name="remove_message">O arquivo do mod será removido do WSCLauncher. Os dados do jogo serão preservados. A mudança vale no próximo início.</string>
   <string name="section_appearance">Aparência</string>
+  <string name="section_hooking">Backend Java (hooks)</string>
+  <string name="hook_backend">Backend de hooking</string>
+  <string name="hook_backend_note">Escolha como o launcher intercepta métodos Java do jogo. Se o jogo não abrir, troque.</string>
+  <string name="hook_backend_auto">Automático (recomendado)</string>
+  <string name="hook_backend_auto_note">Pine no Android 14+, LSPlant no Android 10-13.</string>
+  <string name="hook_backend_pine">Pine</string>
+  <string name="hook_backend_pine_note">Funciona melhor em Android 14+ e ROMs Motorolas recentes.</string>
+  <string name="hook_backend_lsplant">LSPlant</string>
+  <string name="hook_backend_lsplant_note">Funciona melhor em Android 10-13. Pode falhar em Android 14+ por limitação do LSPlant 6.4.</string>
   <string name="language">Idioma</string>
   <string name="language_pt">Português (Brasil)</string>
   <string name="language_en">English</string>

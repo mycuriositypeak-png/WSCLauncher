@@ -301,6 +301,15 @@ public final class LauncherActivity extends AppCompatActivity {
         ui.add(appearance, ui.setting(R.drawable.ic_color_lens, R.string.dynamic_colors,
                 getText(android.os.Build.VERSION.SDK_INT >= 31 ? R.string.dynamic_colors_note : R.string.dynamic_unavailable), dynamic, null), 0);
         ui.add(page, appearance, 0);
+        ui.section(page, R.string.section_hooking);
+        LinearLayout hooking = ui.column();
+        int currentBackend = UiPreferences.hookBackend(this);
+        int backendNoteRes = currentBackend == UiPreferences.HOOK_PINE ? R.string.hook_backend_pine_note
+                : currentBackend == UiPreferences.HOOK_LSPLANT ? R.string.hook_backend_lsplant_note
+                : R.string.hook_backend_auto_note;
+        ui.add(hooking, ui.setting(R.drawable.ic_code, R.string.hook_backend,
+                getText(backendNoteRes), null, this::chooseHookBackend), 0);
+        ui.add(page, hooking, 0);
         ui.section(page, R.string.section_game_data);
         View gameData = ui.setting(R.drawable.ic_download, R.string.export_game_data, getText(R.string.export_game_data_note), null, this::chooseDataExport);
         gameData.setId(R.id.export_game_data_button); gameData.setEnabled(state.busy == 0);
@@ -351,6 +360,21 @@ public final class LauncherActivity extends AppCompatActivity {
             getSharedPreferences(UiPreferences.FILE, 0).edit().putString("language", languages[which])
                     .remove("system-language").apply(); dialog.dismiss(); recreate();
         }).setNegativeButton(R.string.cancel, null).show();
+    }
+    private void chooseHookBackend() {
+        int current = UiPreferences.hookBackend(this);
+        String[] labels = {getString(R.string.hook_backend_auto), getString(R.string.hook_backend_pine), getString(R.string.hook_backend_lsplant)};
+        int index = current == UiPreferences.HOOK_PINE ? 1 : current == UiPreferences.HOOK_LSPLANT ? 2 : 0;
+        new MaterialAlertDialogBuilder(this).setTitle(R.string.hook_backend)
+                .setSingleChoiceItems(labels, index, (dialog, which) -> {
+                    int value = which == 1 ? UiPreferences.HOOK_PINE : which == 2 ? UiPreferences.HOOK_LSPLANT : UiPreferences.HOOK_AUTO;
+                    getSharedPreferences(UiPreferences.FILE, 0).edit().putInt(UiPreferences.KEY_HOOK_BACKEND, value).apply();
+                    dialog.dismiss();
+                    // The new backend takes effect on next guest process start — but we recreate the
+                    // settings UI so the description note updates immediately.
+                    recreate();
+                })
+                .setNegativeButton(R.string.close, null).show();
     }
     private void errorNotice(int title, Exception error) {
         Snackbar.make(pageHost, title == 0 ? R.string.error_title : title, Snackbar.LENGTH_LONG)

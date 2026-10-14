@@ -1,5 +1,6 @@
 package dev.wsc.launcher;
 
+import android.content.Context;
 import android.os.Build;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -346,6 +347,12 @@ public final class Hooker {
     // -------- Backend selection --------
 
     private static volatile boolean loaded = false;
+    private static Context appContext = null;
+
+    /** Set the application Context so the static Hooker can read SharedPreferences. */
+    public static void setApplicationContext(Context context) {
+        if (context != null) appContext = context.getApplicationContext();
+    }
 
     private static void ensureLoaded() {
         if (loaded) return;
@@ -358,12 +365,33 @@ public final class Hooker {
 
     private static void selectAndInitBackend() {
         int sdk = Build.VERSION.SDK_INT;
-        // Strategy:
+        // User preference overrides the auto strategy.
+        int pref = appContext != null ? UiPreferences.hookBackend(appContext) : UiPreferences.HOOK_AUTO;
+        GuestRuntime.log("HOOKER: pref=" + prefName(pref) + " android=" + sdk, null);
+
+        if (pref == UiPreferences.HOOK_LSPLANT) {
+            // User explicitly forced LSPlant (e.g. on Android 14+ to test new behavior).
+            if (initLsplant()) {
+                CallFrame.backend = CallFrame.BACKEND_LSPLANT;
+                GuestRuntime.log("HOOKER: using LSPlant (forced by user, Android " + sdk + ")", null);
+                return;
+            }
+            GuestRuntime.log("HOOKER: LSPlant init failed (forced); falling back to Pine", null);
+        } else if (pref == UiPreferences.HOOK_PINE) {
+            // User explicitly forced Pine (e.g. on Android 11 where Pine might work on this ROM).
+            if (initPine()) {
+                CallFrame.backend = CallFrame.BACKEND_PINE;
+                GuestRuntime.log("HOOKER: using Pine (forced by user, Android " + sdk + ")", null);
+                return;
+            }
+            GuestRuntime.log("HOOKER: Pine init failed (forced); falling back to LSPlant", null);
+        }
+
+        // Auto strategy (default):
         //   Android 14 (API 34)+ : Pine (LSPlant 6.4 lacks GetMethodShorty here)
         //   Android 10-13 (API 29-33): LSPlant (Pine's ART introspection fails on some ROMs)
         //   Android 7-9 (API 24-28): LSPlant (LSPlant supports API 21+)
         if (sdk >= 34) {
-            // Try Pine first; if Pine.init fails for any reason, fall back to LSPlant.
             if (initPine()) {
                 CallFrame.backend = CallFrame.BACKEND_PINE;
                 GuestRuntime.log("HOOKER: using Pine (Android " + sdk + ")", null);
@@ -371,13 +399,11 @@ public final class Hooker {
             }
             GuestRuntime.log("HOOKER: Pine init failed; falling back to LSPlant", null);
         }
-        // Try LSPlant.
         if (initLsplant()) {
             CallFrame.backend = CallFrame.BACKEND_LSPLANT;
             GuestRuntime.log("HOOKER: using LSPlant (Android " + sdk + ")", null);
             return;
         }
-        // Last resort: try Pine even on older Android (might still work on some ROMs).
         if (initPine()) {
             CallFrame.backend = CallFrame.BACKEND_PINE;
             GuestRuntime.log("HOOKER: using Pine (fallback, Android " + sdk + ")", null);
@@ -385,6 +411,10 @@ public final class Hooker {
         }
         GuestRuntime.log("HOOKER: no backend could be initialized; Java hooks unavailable", null);
         CallFrame.backend = CallFrame.BACKEND_NONE;
+    }
+
+    private static String prefName(int pref) {
+        return pref == UiPreferences.HOOK_PINE ? "Pine" : pref == UiPreferences.HOOK_LSPLANT ? "LSPlant" : "Auto";
     }
 
     private static boolean initPine() {

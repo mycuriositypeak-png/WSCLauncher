@@ -33,8 +33,8 @@ android {
         applicationId = "dev.wsc.launcher"
         minSdk = 24
         targetSdk = 28 // Experimental cross-package hosting; not a Play Store release.
-        versionCode = 22
-        versionName = "1.1.3"
+        versionCode = 24
+        versionName = "1.2.1"
     }
 
     val wscReleaseSigning = if (releaseSigningConfigured) {
