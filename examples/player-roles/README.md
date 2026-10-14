@@ -1,39 +1,39 @@
 # Player Roles Picker
 
-Versão atual: **0.4** (manifest `0.4.0`). ID: `wsc.player-roles-picker`.
+Current version: **0.4** (manifest `0.4.0`). ID: `wsc.player-roles-picker`.
 
-Exemplo funcional de mod nativo para WSCLauncher, usando **Native Mod ABI v1**. As setas de Player Roles abrem uma tabela no próprio Cocos do jogo, com posição, retrato, estrelas, avaliação e idade. A lógica compartilhada mantém o callback original de atribuição e salvamento.
+Functional native mod example for WSCLauncher, using **Native Mod ABI v1**. Player Roles arrows open a table in the game's own Cocos, with position, portrait, stars, rating and age. Shared logic maintains the original assignment and saving callback.
 
-| Arquitetura | Build e perfil estático | Runtime desta versão |
-| --- | --- | --- |
-| ARM64 (`arm64-v8a`) | ✓ | ✓ Testado manualmente |
-| ARM32 (`armeabi-v7a`) | ✓ | ✓ Testado manualmente |
+| Architecture | Static build and profile | Runtime of this version |
+|--------------|--------------------------|-------------------------|
+| ARM64 (`arm64-v8a`) | ✓ | ✓ Manually tested |
+| ARM32 (`armeabi-v7a`) | ✓ | ✓ Manually tested |
 
-Perfil alvo nas duas ABIs: **World Soccer Champs 2026.12, versionCode 468**, package `com.monkeyibrow.worldsoccerchamps`. A versão 0.4 foi compilada, verificada contra as bibliotecas reais das duas arquiteturas e **testada manualmente em runtime em ARM64 e ARM32**.
+Target profile for both ABIs: **World Soccer Champs 2026.12, versionCode 468**, package `com.monkeyibrow.worldsoccerchamps`. Version 0.4 was compiled, verified against the real libraries of both architectures and **manually tested at runtime on ARM64 and ARM32**.
 
-Cada arquitetura possui seu próprio [perfil binário](profiles/README.md), offsets, layouts e assinaturas em `profiles/arm64.h` e `profiles/arm32.h`. O código de seleção e renderização permanece compartilhado. Esses bindings pertencem ao mod; não dependem de APIs de gameplay como `wsc.players` ou `wsc.stats`. A ABI do launcher continua v1, e este mod usa a UI Cocos diretamente, sem chamar `show_choice`.
+Each architecture has its own [binary profile](profiles/README.md), offsets, layouts and signatures in `profiles/arm64.h` and `profiles/arm32.h`. Selection and rendering code remains shared. These bindings belong to the mod; they do not depend on gameplay APIs like `wsc.players` or `wsc.stats`. The launcher ABI remains v1, and this mod uses the Cocos UI directly, without calling `show_choice`.
 
-Hashes SHA256 completos exigidos para a biblioteca original do jogo:
+Complete SHA256 hashes required for the original game library:
 
 ```text
 ARM64: 6fd30552b2b5419b143b06d12c1aa397d6f24e118d59304ac3db8f8a041c98e4
 ARM32: a219f831a937e59af2891be9f0d50b6b157bdda1d624220833af3b37db3ab531
 ```
 
-Antes dos hooks, o launcher confere o hash do jogo para a ABI selecionada. O mod também confere suas 23 funções, evidências de layout e sete slots de vtable. Uma divergência impede a instalação dos hooks; uma falha durante a instalação desfaz os hooks já instalados. RVAs Thumb preservam o bit de modo para chamadas e ShadowHook, retirando-o somente para ler assinaturas.
+Before hooks, the launcher checks the game hash for the selected ABI. The mod also verifies its 23 functions, layout evidences and seven vtable slots. A divergence prevents hook installation; a failure during installation undoes already installed hooks. Thumb RVAs preserve the mode bit for calls and ShadowHook, removing it only to read signatures.
 
-## Instalar o pacote pronto
+## Installing the Ready Package
 
-1. Instale sua cópia completa do WSC e um WSCLauncher compatível com a arquitetura dela. Em dispositivo ARM64 com jogo ARM32, use explicitamente o APK ARM32 do launcher.
-2. Baixe [wsc-player-roles-picker-v0.4.zip](wsc-player-roles-picker-v0.4.zip) e confira o SHA256 abaixo.
-3. Salve a partida. Para substituir a versão anterior, remova **somente o Player Roles** da aba Mods; o importador não sobrescreve IDs existentes. Não apague os dados do launcher.
-4. Em **Mods → Adicionar mod**, selecione o ZIP sem extrair.
-5. Ative seu switch. O launcher seleciona automaticamente a biblioteca da ABI do processo.
-6. Inicie/reinicie o jogo **pelo launcher**. Abrir o ícone original do jogo não carrega o mod.
+1. Install your full WSC copy and a WSCLauncher compatible with its architecture. On an ARM64 device with ARM32 game, explicitly use the launcher's ARM32 APK.
+2. Download [wsc-player-roles-picker-v0.4.zip](wsc-player-roles-picker-v0.4.zip) and verify the SHA256 below.
+3. Save the match. To replace the previous version, remove **only Player Roles** from the Mods tab; the importer does not overwrite existing IDs. Do not delete launcher data.
+4. In **Mods → Add mod**, select the ZIP without extracting.
+5. Enable your switch. The launcher automatically selects the library for the process ABI.
+6. Start/restart the game **via the launcher**. Opening the original game icon does not load the mod.
 
-As setas de Capitão, Faltas e dos cinco cobradores abrem a lista. Escolher o jogador atual ou CANCELAR mantém os dados. BACK fecha primeiro o seletor; com ele fechado, mantém o fluxo original. Cobradores não podem repetir jogadores em outras posições de pênalti. Use BACK e o salvamento normal do jogo para persistir as alterações.
+The Captain, Fouls and five penalty takers arrows open the list. Choosing the current player or CANCEL preserves data. BACK first closes the selector; with it closed, preserves the original flow. Penalty takers cannot repeat players in other penalty positions. Use BACK and the game's normal saving to persist changes.
 
-O ZIP contém **exatamente**:
+The ZIP contains **exactly**:
 
 ```text
 mod.json
@@ -41,34 +41,34 @@ lib/arm64-v8a/libplayer_roles.so
 lib/armeabi-v7a/libplayer_roles.so
 ```
 
-Não contém APK, assets, saves nem bibliotecas proprietárias do World Soccer Champs. Nenhum binário do jogo é necessário para compilar.
+It contains no APK, assets, saves nor proprietary World Soccer Champs libraries. No game binary is needed for compilation.
 
-SHA256 do ZIP:
+ZIP SHA256:
 
 ```text
 4d9040a68c8884d71d515aeee88ab143bd24357206892eef43882d228955afb0
 ```
 
-SHA256 dos payloads:
+Payload SHA256:
 
 ```text
 ARM64: fd3f1ebd22e0f5fad77ad6481e94245edb1b78c9cd77689939818ed8ca9cf885
 ARM32: 4dac264d5974ca495504a91810527f6033549eaabf06991714a9f22b41934e49
 ```
 
-## Compilar e testar
+## Compile and Test
 
-Na raiz, em Linux x86_64 com Android NDK **27.2.12479018**:
+In the root directory, on Linux x86_64 with Android NDK **27.2.12479018**:
 
 ```sh
 python3 scripts/build-native.py --mod-only --ndk "$ANDROID_NDK_HOME"
 ```
 
-O script usa C++17, libc++ estática, API Android 24 e os targets `aarch64-linux-android24` / `armv7a-linux-androideabi24`. Compila com `-Wall -Wextra -Werror`, aplica `exports.map`, verifica que somente `wsc_mod_init` está público, remove símbolos desnecessários e gera o manifest com hashes reais e um ZIP dual-ABI. Intermediários ficam em `build/<abi>/`; o ZIP final fica nesta pasta. Sem `--mod-only`, compila também o host nas duas ABIs. Atualize os hashes deste README após recompilar um pacote diferente.
+The script uses C++17, static libc++, Android API 24 and targets `aarch64-linux-android24` / `armv7a-linux-androideabi24`. Compiles with `-Wall -Wextra -Werror`, applies `exports.map`, verifies that only `wsc_mod_init` is public, removes unnecessary symbols and generates the manifest with real hashes and a dual-ABI ZIP. Intermediates go to `build/<abi>/`; the final ZIP is in this folder. Without `--mod-only`, it also compiles the host for both ABIs. Update the hashes in this README after recompiling a different package.
 
-A interface mínima do launcher permanece em [wsc_mod_api.h](../../native/include/wsc_mod_api.h).
+The launcher's minimal interface remains in [wsc_mod_api.h](../../native/include/wsc_mod_api.h).
 
-Testes C++ host-side, executados da raiz:
+Host-side C++ tests, executed from the root:
 
 ```sh
 mkdir -p examples/player-roles/build
@@ -84,19 +84,19 @@ examples/player-roles/build/profile-test
 ./gradlew :app:testDebugUnitTest
 ```
 
-Os testes C++ cobrem as sete funções, elegibilidade, cancelamento, seleção atual, revalidação, BACK, proteção de init e rollback. Os testes JVM importam o ZIP real, conferem ELF/ABI, payloads, claims e ativação. Testes com fixtures cobrem seleção por processo, hashes independentes, arquivos alterados e mods single-ABI. Eles não carregam o jogo nem executam hooks Android.
+C++ tests cover the seven functions, eligibility, cancellation, current selection, revalidation, BACK, init protection and rollback. JVM tests import the real ZIP, verify ELF/ABI, payloads, claims and activation. Fixture tests cover per-process selection, independent hashes, modified files and single-ABI mods. They do not load the game nor execute Android hooks.
 
-Com cópias locais autorizadas das bibliotecas originais **fora do repositório**:
+With authorized local copies of the original game libraries **outside the repository**:
 
 ```sh
-python3 scripts/verify-player-roles-profile.py /caminho/arm64/libWorldSoccerChamps.so
-python3 scripts/verify-player-roles-profile.py /caminho/arm32/libWorldSoccerChamps.so
+python3 scripts/verify-player-roles-profile.py /path/to/arm64/libWorldSoccerChamps.so
+python3 scripts/verify-player-roles-profile.py /path/to/arm32/libWorldSoccerChamps.so
 ```
 
-O script detecta ELF64/AArch64 ou ELF32/ARM e verifica o perfil correspondente, incluindo relocations de vtable. Não extrai nem empacota o jogo. Outra versão exige nova análise, não troca de hashes.
+The script detects ELF64/AArch64 or ELF32/ARM and verifies the corresponding profile, including vtable relocations. It does not extract nor package the game. Another version requires new analysis, not hash swapping.
 
-## Limitações e diagnóstico
+## Limitations and Diagnosis
 
-Somente os dois perfis acima são suportados. A versão 0.4 foi testada manualmente em dispositivos ARM64 e ARM32. Mudanças futuras do WSC ainda exigem nova validação dos perfis, hooks, offsets e assinaturas antes de serem consideradas compatíveis. Mudança programática de cena enquanto a seleção está aberta continua sem suporte; encerrar o guest libera a sessão.
+Only the two profiles above are supported. Version 0.4 was manually tested on ARM64 and ARM32 devices. Future WSC changes still require new validation of profiles, hooks, offsets and signatures before being considered compatible. Programmatic scene change while selection is open remains unsupported; guest termination releases the session.
 
-Em falha, exporte o diagnóstico e procure `NATIVE MOD` / `ROLE_PICKER`. Consulte [TROUBLESHOOTING](../../docs/TROUBLESHOOTING.md) e [MODDING](../../docs/MODDING.md). O exemplo segue a [licença do projeto](../../LICENSE), com notices em [THIRD_PARTY_NOTICES](../../THIRD_PARTY_NOTICES.md).
+On failure, export diagnostics and look for `NATIVE MOD` / `ROLE_PICKER`. See [TROUBLESHOOTING](../../docs/TROUBLESHOOTING.md) and [MODDING](../../docs/MODDING.md). This example follows the [project license](../../LICENSE), with notices in [THIRD_PARTY_NOTICES](../../THIRD_PARTY_NOTICES.md).

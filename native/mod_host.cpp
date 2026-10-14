@@ -77,6 +77,10 @@ extern "C" JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* value, void*) {
     if (!bridge || !showChoice) return JNI_ERR;
     host.api_version = 1; host.struct_size = sizeof(host);
     host.log = logMessage; host.hook = hook; host.unhook = shadowhook_unhook; host.show_choice = choice;
+    // Initialize LSPlant for Java method hooking (replaces canyie/Pine).
+    // Failure is non-fatal: native mod hooks (shadowhook-based) still work.
+    extern bool wsc_lsplant_init(JNIEnv*);
+    wsc_lsplant_init(env);
     return JNI_VERSION_1_6;
 }
 extern "C" JNIEXPORT void JNICALL Java_dev_wsc_launcher_NativeModBridge_loadNative(JNIEnv* env, jclass, jstring file) {

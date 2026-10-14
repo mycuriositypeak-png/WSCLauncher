@@ -1,64 +1,64 @@
-# Resolução de problemas
+# Troubleshooting
 
-## Jogo não detectado
+## Game Not Detected
 
-Instale World Soccer Champs (`com.monkeyibrow.worldsoccerchamps`) com todos os splits/asset packs e confirme que abre normalmente. O launcher lê a instalação do usuário; não fornece o jogo. A instalação precisa estar acessível no mesmo perfil Android.
+Install World Soccer Champs (`com.monkeyibrow.worldsoccerchamps`) with all splits/asset packs and confirm it opens normally. The launcher reads the user's installation; it does not provide the game. The installation must be accessible in the same Android profile.
 
-## ABI incompatível
+## Incompatible ABI
 
-O launcher e as bibliotecas do jogo precisam ter a mesma ABI. Instale `WSCLauncher-<versão>-arm64.apk` para ARM64 ou `WSCLauncher-<versão>-arm32.apk` para ARM32; suporte ARM64 do aparelho não comprova a ABI da instalação. Confira `ARQUITETURAS DO JOGO`, `ABI DO PROCESSO` e `DIRETÓRIO NATIVO` no diagnóstico. Player Roles 0.4 inclui as duas ABIs; outros mods podem fornecer somente uma. O universal contém ambas as bibliotecas do launcher, mas normalmente roda em ARM64 num dispositivo ARM64. Para WSC instalado somente em ARM32, use o APK ARM32 do launcher. A Home mostra a incompatibilidade e mantém Jogar desabilitado.
+The launcher and game libraries must have the same ABI. Install `WSCLauncher-<version>-arm64.apk` for ARM64 or `WSCLauncher-<version>-arm32.apk` for ARM32; device ARM64 support does not prove the installation's ABI. Check `GAME ARCHITECTURES`, `PROCESS ABI` and `NATIVE DIRECTORY` in diagnostics. Player Roles 0.4 includes both ABIs; other mods may provide only one. The universal APK contains both launcher libraries but normally runs on ARM64 on an ARM64 device. For WSC installed only on ARM32, use the ARM32 launcher APK. The Home shows the incompatibility and keeps Play disabled.
 
-## Versão ou hash incompatível
+## Version or Hash Incompatible
 
-Um mod declara exatamente o `versionCode` do jogo e o SHA256 de sua biblioteca original por ABI. Player Roles suporta WSC 2026.12 (468) e o hash indicado em seu [README](../examples/player-roles/README.md). Desative mods incompatíveis ou obtenha uma atualização feita para seu perfil. Não troque hashes/offsets apenas para contornar a validação; o mod também confere assinaturas antes de instalar hooks.
+A mod declares exactly the game's `versionCode` and the SHA256 of its original library per ABI. Player Roles supports WSC 2026.12 (468) and the hash indicated in its [README](../examples/player-roles/README.md). Disable incompatible mods or obtain an update made for your profile. Do not swap hashes/offsets just to bypass validation; the mod also verifies signatures before installing hooks.
 
-Hash incorreto do payload indica pacote corrompido ou biblioteca instalada alterada. Confira o SHA256 do ZIP distribuído e importe novamente uma cópia confiável, removendo primeiro o ID já instalado.
+Incorrect payload hash indicates a corrupted package or altered installed library. Check the SHA256 of the distributed ZIP and import again a reliable copy, first removing the already installed ID.
 
-## Formato antigo ou mod já instalado
+## Old Format or Mod Already Installed
 
-Somente `native` / formato 2 / Native Mod ABI v1 é aceito. Remova os mods declarativos antigos usando a versão anterior do launcher **antes de atualizar**: manifests persistidos antigos também são rejeitados pela linha 1.x e podem impedir a listagem. Não limpe os dados do aplicativo como primeira tentativa, pois isso também apaga saves do sandbox do launcher.
+Only `native` / format 2 / Native Mod ABI v1 is accepted. Remove declarative old mods using the previous launcher version **before updating**: persisted old manifests are also rejected by the 1.x line and may prevent listing. Do not clear app data as a first attempt, as this also deletes the launcher sandbox saves.
 
-Para atualizar Player Roles, salve o jogo, remova somente o mod instalado e importe seu ZIP 0.4. O importador não sobrescreve um ID existente. Código-fonte e ZIP ficam em [examples/player-roles](../examples/player-roles/README.md).
+To update Player Roles, save the game, remove only the installed mod and import its ZIP 0.4. The importer does not overwrite an existing ID. Source code and ZIP are in [examples/player-roles](../examples/player-roles/README.md).
 
-## Conflito de claims
+## Claim Conflict
 
-Dois mods não podem ocupar o mesmo ponto de integração declarado. Desative o mod conflitante antes de ativar outro. A ativação rejeitada preserva a seleção anterior; veja os nomes envolvidos na mensagem.
+Two mods cannot occupy the same declared integration point. Disable the conflicting mod before activating another. Rejected activation preserves the previous selection; see the names involved in the message.
 
-## Alterações não aparecem
+## Changes Not Appearing
 
-Salve a partida antes de voltar ao launcher. Na aba **Mods**, ative/desative o mod; depois, na aba **Início**, toque em **Jogar** ou **Reiniciar com os mods**. A seleção só muda num guest novo, sem hot unload. O launcher reinicia o guest quando o fingerprint da seleção muda. Se uma falha deixou o mesmo guest aberto sem mudança de seleção, force a parada do launcher e abra novamente. Abrir o jogo pelo ícone original não carrega os mods do launcher.
+Save the match before returning to the launcher. In the **Mods** tab, enable/disable the mod; then, in the **Home** tab, tap **Play** or **Restart with mods**. Selection only changes on a new guest, without hot unload. The launcher restarts the guest when the selection fingerprint changes. If a failure left the same guest open without selection change, force stop the launcher and open again. Opening the game via the original icon does not load launcher mods.
 
-## Permissões e serviços
+## Permissions and Services
 
-Se o jogo ficar parado na abertura em uma build de release, confira se o diagnóstico registra `PROVIDERS: Firebase concluído` antes de `APPLICATION: attach concluído` e do Cocos. O launcher inicializa o `FirebaseInitProvider` original antes dessas etapas. Inicializar Firebase somente depois de uma requisição HTTP instrumentada do SDKBOX pode bloquear `FirebaseApp` e o inicializador de `SessionManager`, antes de qualquer hook de UI de mod. A linha `bootstrap=context-before-create-v2+firebase-provider-v1` identifica o fluxo corrigido. Caso o problema continue, exporte um diagnóstico novo; não apague os dados ou os saves para testar.
+If the game gets stuck on opening in a release build, check if diagnostics record `PROVIDERS: Firebase completed` before `APPLICATION: attach completed` and Cocos. The launcher initializes the original `FirebaseInitProvider` before these steps. Initializing Firebase only after an instrumented SDKBOX HTTP request can block `FirebaseApp` and the `SessionManager` initializer, before any mod UI hook. The line `bootstrap=context-before-create-v2+firebase-provider-v1` identifies the corrected flow. If the problem continues, export a new diagnosis; do not delete data or saves to test.
 
-Se o jogo encerrar segundos após abrir quando a rede permite anúncios, procure `FATAL EXCEPTION: GassClient`, `GassDGClient` ou `LooperProvider` e `SecurityException: Unknown calling package name 'com.monkeyibrow.worldsoccerchamps'`. No caso relatado, o jogo funcionava com DNS privado bloqueando anúncios e encerrava cerca de 20 segundos após abrir com esse DNS desativado. Essa exceção indica que o SDK de anúncios apresentou o pacote do jogo a um serviço Android usando o UID do launcher. O hook de `BaseGmsClient` do APK não cobre clientes carregados em outro módulo pelo Google Play Services. O launcher adapta o contexto na inicialização do MobileAds e nos criadores de clientes, antes de enviar esse contexto ao módulo local ou remoto. O usuário confirmou que a build de teste deixou de apresentar o crash ao abrir o jogo com o DNS desativado. As linhas `SDK ADS CONTEXT` registram os pontos instalados; os nomes internos são específicos do SDK de WSC 468 e classes ausentes são registradas. Esse ajuste não trata toda falha de rede ou de anúncios.
+If the game closes seconds after opening when the network allows ads, look for `FATAL EXCEPTION: GassClient`, `GassDGClient` or `LooperProvider` and `SecurityException: Unknown calling package name 'com.monkeyibrow.worldsoccerchamps'`. In the reported case, the game worked with private DNS blocking ads and closed about 20 seconds after opening with that DNS disabled. This exception indicates that the ads SDK presented the game's package to an Android service using the launcher's UID. The APK's `BaseGmsClient` hook does not cover clients loaded in another module by Google Play Services. The launcher adapts the context during MobileAds initialization and client creators, before sending this context to the local or remote module. The user confirmed that the test build stopped showing the crash when opening the game with DNS disabled. The `SDK ADS CONTEXT` lines register the installed points; internal names are specific to the WSC 468 ads SDK and missing classes are recorded. This adjustment does not treat all network or ad failures.
 
-Para validar uma correção desse crash, compare o mesmo aparelho e instalação com DNS privado ativo e desativado, primeiro com os mods desativados e depois com a seleção habitual. Aguarde além do tempo em que ocorria a falha, abra uma partida e exporte o diagnóstico de qualquer novo encerramento. Confira também o funcionamento dos anúncios quando a rede permitir. A ausência de `Unknown calling package` em testes JVM não substitui a execução real do módulo Google no aparelho.
+To validate a fix for this crash, compare the same device and installation with private DNS active and inactive, first with mods disabled and then with the usual selection. Wait beyond the time when the failure occurred, open a match and export the diagnosis of any new closure. Also check ad functioning when the network allows. The absence of `Unknown calling package` in JVM tests does not substitute real execution of the Google module on the device.
 
-O guest usa as permissões e UID do launcher. O manifest mantém `VIBRATE`, necessária para evitar `SecurityException` na vibração do jogo; é uma permissão normal, sem pedido em runtime. Os clientes Google observados recebem contexto do launcher, mas serviços/providers/jobs não são virtualizados por completo. Se aparecer `Unknown calling package`, falha de agendamento ou outra permissão negada, exporte o diagnóstico; não suponha que permissões da instalação original valham para o guest.
+The guest uses the launcher's permissions and UID. The manifest retains `VIBRATE`, necessary to avoid `SecurityException` on game vibration; it is a normal permission, without runtime request. Observed Google clients receive launcher context, but services/providers/jobs are not fully virtualized. If `Unknown calling package` appears, scheduling failure or another permission denied, export the diagnosis; do not assume that original installation permissions apply to the guest.
 
-## Exportar dados do jogo
+## Exporting Game Data
 
-Em **Configurações → Dados do jogo → Exportar dados do jogo**, escolha **Completa** ou **Leve**, toque em **Escolher destino** e salve o ZIP pelo seletor de arquivos do Android. A exportação é feita em segundo plano, com barra e porcentagem, e continua durante a rotação da tela. A etapa inicial de levantamento dos arquivos usa uma barra indeterminada; a porcentagem acompanha os bytes e entradas processados. 100% só é emitido depois de fechar o ZIP e seu destino.
+In **Settings → Game Data → Export Game Data**, choose **Complete** or **Light**, tap **Choose Destination** and save the ZIP via the Android file picker. Export is done in the background, with bar and percentage, and continues during screen rotation. The initial file listing step uses an indeterminate bar; the percentage accompanies processed bytes and entries. 100% is only emitted after closing the ZIP and its destination.
 
-Salve a partida antes de exportar. Depois que o destino é escolhido, o launcher encerra somente seu próprio processo guest e aguarda seu encerramento antes de ler os arquivos. Isso evita copiar saves enquanto o jogo escreve neles. Uma falha ou alteração dos arquivos durante a cópia é apresentada como erro; a exportação não modifica os saves.
+Save the match before exporting. After the destination is chosen, the launcher ends only its own guest process and waits for its exit before reading the files. This avoids copying saves while the game writes to them. A failure or file alteration during copying is presented as an error; export does not modify saves.
 
-- **Completa:** inclui todos os arquivos regulares e pastas acessíveis dentro da pasta privada desta instalação, normalmente `/data/user/0/dev.wsc.launcher/`, incluindo recursos baixados, mods, logs e caches. Links simbólicos e arquivos especiais são omitidos, sem seguir destinos externos.
-- **Leve:** preserva todos os arquivos dos slots `files/savegame_slot_*`, inclusive `data.bin.old` e o `datapack.db` de cada slot; configurações e arquivos de dados na raiz de `files` (`.db` e seus auxiliares, `.bin`, `.csv` e outros formatos de configuração); `shared_prefs`, `databases`, dados de `monkey_ranks` e DataStore fora das pastas Firebase. Omite logos, adboards, pacotes de recursos ZIP, mods, logs, caches e relatórios de crash. O filtro foi conferido contra o exemplo de WSC 468; uma versão futura que mude a organização dos saves pode exigir atualização. Para uma cópia de toda a árvore, escolha Completa.
+- **Complete:** includes all regular files and accessible folders within this installation's private directory, normally `/data/user/0/dev.wsc.launcher/`, including downloaded resources, mods, logs and caches. Symbolic links and special files are omitted, without following external destinations.
+- **Light:** preserves all files in `files/savegame_slot_*` slots, inclusive `data.bin.old` and the `datapack.db` of each slot; configurations and data files in the `files` root (`.db` and its auxiliaries, `.bin`, `.csv` and other config formats); `shared_prefs`, `databases`, `monkey_ranks` data and DataStore outside Firebase paths. Omits logos, adboards, resource ZIP packages, mods, logs, caches and crash reports. The filter was verified against the WSC 468 example; a future version that changes save organization may require updating. For a full tree copy, choose Complete.
 
-O ZIP contém a árvore original dentro de **`data/`** e um **`wsc-export.json`** na raiz, formato 2, com pacote de origem, modo, quantidade, caminhos relativos, tamanhos e SHA256 dos arquivos. O prefixo evita conflito com um arquivo de metadados já existente na pasta exportada. Não há importação/restauração automática nesta opção.
+The ZIP contains the original tree inside **`data/`** and a **`wsc-export.json`** in the root, format 2, with origin package, mode, quantity, relative paths, sizes and SHA256 of files. The prefix avoids conflict with an existing metadata file in the exported folder. There is no automatic import/restoration in this option.
 
-Cada instalação exporta seu próprio sandbox. Uma build de teste com outro applicationId exporta os dados dessa build, e não os dados privados do launcher original ou do aplicativo original do jogo. O launcher acessa sua própria pasta sem root e usa o seletor do Android para gravar o ZIP, sem solicitar acesso geral ao armazenamento.
+Each installation exports its own sandbox. A test build with another applicationId exports that build's data, and not the private data of the original launcher or the original game application. The launcher accesses its own folder without root and uses the Android file picker to write the ZIP, without requesting general storage access.
 
-## Exportar diagnóstico
+## Exporting Diagnostic
 
-Depois de reproduzir, reabra o launcher e acesse **Configurações → Diagnóstico → Exportar diagnóstico**. O arquivo contém metadados, log do bootstrap/ciclo de vida, logcat do guest com rotação, seleção de mods instalada/carregada e registros/traces de encerramento quando disponíveis (Android 11+ para `ApplicationExitInfo`). Procure `NATIVE MOD`, `WSCMod` e `ROLE_PICKER` para o exemplo. Logs podem conter caminhos e dados da sessão; revise antes de compartilhar.
+After reproducing, reopen the launcher and access **Settings → Diagnosis → Export Diagnosis**. The file contains metadata, bootstrap/lifecycle log, guest logcat with rotation, installed/loaded mod selection and termination records/traces when available (Android 11+ for `ApplicationExitInfo`). Look for `NATIVE MOD`, `WSCMod` and `ROLE_PICKER` for the example. Logs may contain session paths and data; review before sharing.
 
-A captura embutida é limitada ao acesso permitido ao aplicativo. Para capturar também mensagens disponíveis via ADB, conecte um aparelho autorizado a um computador e execute da raiz:
+Built-in capture is limited to the application's permitted access. To also capture messages available via ADB, connect an authorized device to a computer and run from the root:
 
 ```sh
 scripts/capture-test.sh /tmp/wsc-test
 ```
 
-O script força a parada do launcher, abre sua tela e aguarda que você reproduza o problema e pressione Enter. Salve antes de executá-lo. Requer ADB no PATH. `onResume` nos logs não prova renderização correta; confira visualmente o menu, uma partida e o comportamento do mod.
+The script forces launcher stop, opens its screen and waits for you to reproduce the problem and press Enter. Save before executing. Requires ADB in PATH. `onResume` in logs does not prove correct rendering; visually confirm the menu, a match and mod behavior.

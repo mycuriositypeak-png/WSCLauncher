@@ -9,8 +9,7 @@ import java.io.*;
 import java.lang.reflect.*;
 import java.util.*;
 import java.util.zip.ZipFile;
-import top.canyie.pine.Pine;
-import top.canyie.pine.callback.MethodHook;
+import dev.wsc.launcher.Hooker;
 
 /** Experimental in-process hosting. No integrity checks are disabled or patched. */
 final class GuestRuntime {
@@ -162,8 +161,8 @@ final class GuestRuntime {
 
     private static void installLibraries(Map<String,String> libs) throws Exception {
         Method find = dalvik.system.BaseDexClassLoader.class.getDeclaredMethod("findLibrary", String.class);
-        Pine.hook(find, new MethodHook() {
-            @Override public void beforeCall(Pine.CallFrame frame) {
+        Hooker.hook(find, new Hooker.MethodHook() {
+            @Override public void beforeCall(Hooker.CallFrame frame) {
                 if (frame.thisObject != loader) return;
                 String name = (String) frame.args[0];
                 if (libs.containsKey(name)) {
@@ -177,8 +176,8 @@ final class GuestRuntime {
     private static void installClassFallback() throws Exception {
         Method load = ClassLoader.class.getDeclaredMethod("loadClass", String.class, boolean.class);
         ClassLoader hostLoader = host.getClassLoader();
-        Pine.hook(load, new MethodHook() {
-            @Override public void afterCall(Pine.CallFrame frame) throws Throwable {
+        Hooker.hook(load, new Hooker.MethodHook() {
+            @Override public void afterCall(Hooker.CallFrame frame) throws Throwable {
                 if (frame.thisObject != hostLoader || !(frame.getThrowable() instanceof ClassNotFoundException)) return;
                 try { frame.setResult(frame.invokeOriginalMethod(loader, frame.args)); }
                 catch (InvocationTargetException error) {
@@ -190,8 +189,8 @@ final class GuestRuntime {
 
     private static void installActivityHooks() throws Exception {
         Method newActivity = Instrumentation.class.getDeclaredMethod("newActivity", ClassLoader.class, String.class, Intent.class);
-        Pine.hook(newActivity, new MethodHook() {
-            @Override public void beforeCall(Pine.CallFrame frame) throws Throwable {
+        Hooker.hook(newActivity, new Hooker.MethodHook() {
+            @Override public void beforeCall(Hooker.CallFrame frame) throws Throwable {
                 if (activityClass == null || !GuestStubActivity.class.getName().equals(frame.args[1])) return;
                 log("ACTIVITY: começando instanciação.", null);
                 Activity guest = (Activity) activityClass.getDeclaredConstructor().newInstance();
@@ -201,8 +200,8 @@ final class GuestRuntime {
         });
         // Context adaptation happens directly before onCreate below. Framework
         // attachment entry-point hooks are skipped on the observed release path.
-        Pine.hook(Activity.class.getDeclaredMethod("getApplication"), new MethodHook() {
-            @Override public void beforeCall(Pine.CallFrame frame) {
+        Hooker.hook(Activity.class.getDeclaredMethod("getApplication"), new Hooker.MethodHook() {
+            @Override public void beforeCall(Hooker.CallFrame frame) {
                 if (activityClass != null && activityClass.isInstance(frame.thisObject) && gameApplication != null)
                     frame.setResult(gameApplication);
             }
@@ -210,11 +209,11 @@ final class GuestRuntime {
         for (Method method : Instrumentation.class.getDeclaredMethods()) {
             if (!Arrays.asList("callActivityOnCreate", "callActivityOnStart", "callActivityOnResume",
                     "callActivityOnPause", "callActivityOnStop", "callActivityOnDestroy").contains(method.getName())) continue;
-            Pine.hook(method, new MethodHook() {
-                private boolean isGuest(Pine.CallFrame frame) {
+            Hooker.hook(method, new Hooker.MethodHook() {
+                private boolean isGuest(Hooker.CallFrame frame) {
                     return activityClass != null && frame.args.length > 0 && activityClass.isInstance(frame.args[0]);
                 }
-                @Override public void beforeCall(Pine.CallFrame frame) {
+                @Override public void beforeCall(Hooker.CallFrame frame) {
                     if (!isGuest(frame)) return;
                     Activity current = (Activity) frame.args[0];
                     log("LIFECYCLE: " + method.getName() + " iniciado; taskId=" + current.getTaskId()
@@ -228,7 +227,7 @@ final class GuestRuntime {
                             String library = requireCocosLibrary(guest);
                             log("ACTIVITY: contexto confirmado; pacote=" + guest.getPackageName() + "; biblioteca Cocos=" + library, null);
                         } catch (Exception error) {
-                            frame.setThrowable(error); // Pine logs/ignores thrown callback exceptions; return the failure explicitly.
+                            frame.setThrowable(error); // LSPlant logs/ignores thrown callback exceptions; return the failure explicitly.
                             return;
                         }
                         if (nativeMods.hasModules()) NativeModBridge.attach(guest);
@@ -243,7 +242,7 @@ final class GuestRuntime {
                             guest.setRequestedOrientation(activityInfo.screenOrientation);
                     }
                 }
-                @Override public void afterCall(Pine.CallFrame frame) {
+                @Override public void afterCall(Hooker.CallFrame frame) {
                     if (isGuest(frame)) {
                         Activity current = (Activity) frame.args[0];
                         log("LIFECYCLE: " + method.getName()
@@ -253,15 +252,15 @@ final class GuestRuntime {
                 }
             });
         }
-        Pine.hook(Activity.class.getDeclaredMethod("finish"), new MethodHook() {
-            @Override public void beforeCall(Pine.CallFrame frame) {
+        Hooker.hook(Activity.class.getDeclaredMethod("finish"), new Hooker.MethodHook() {
+            @Override public void beforeCall(Hooker.CallFrame frame) {
                 if (activityClass != null && activityClass.isInstance(frame.thisObject))
                     log("ACTIVITY: finish() solicitado.", new Throwable("Origem do finish()"));
             }
         });
         installEngineObservation();
-        Pine.hook(Activity.class.getDeclaredMethod("onResume"), new MethodHook() {
-            @Override public void afterCall(Pine.CallFrame frame) {
+        Hooker.hook(Activity.class.getDeclaredMethod("onResume"), new Hooker.MethodHook() {
+            @Override public void afterCall(Hooker.CallFrame frame) {
                 if (activityClass != null && activityClass.isInstance(frame.thisObject))
                     log("ACTIVITY: onResume alcançado (ainda não comprova renderização do jogo).", null);
             }
@@ -272,12 +271,12 @@ final class GuestRuntime {
         Class<?> cocos = Class.forName("org.cocos2dx.lib.Cocos2dxActivity", false, loader);
         for (Method method : cocos.getDeclaredMethods()) {
             if (!Arrays.asList("onCreate", "onLoadNativeLibraries", "init").contains(method.getName())) continue;
-            Pine.hook(method, new MethodHook() {
-                @Override public void beforeCall(Pine.CallFrame frame) {
+            Hooker.hook(method, new Hooker.MethodHook() {
+                @Override public void beforeCall(Hooker.CallFrame frame) {
                     if (activityClass != null && activityClass.isInstance(frame.thisObject))
                         log("COCOS: " + method.getName() + " iniciado.", null);
                 }
-                @Override public void afterCall(Pine.CallFrame frame) {
+                @Override public void afterCall(Hooker.CallFrame frame) {
                     if (method.getName().equals("onLoadNativeLibraries") && activityClass != null
                             && activityClass.isInstance(frame.thisObject) && !frame.hasThrowable()) {
                         try { nativeMods.load(); }

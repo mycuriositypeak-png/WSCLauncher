@@ -5,8 +5,6 @@ import java.lang.reflect.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
-import top.canyie.pine.Pine;
-import top.canyie.pine.callback.MethodHook;
 
 /** Adapt service clients at their initialization boundary; never intercept or ignore a security check. */
 final class SdkContextHooks {
@@ -21,21 +19,21 @@ final class SdkContextHooks {
                         || method.getParameterTypes()[0] != Context.class) continue;
                 if (!method.getName().equals("getInstance") && !method.getName().equals("getScionFrontendApiImplementation")
                         && !method.getName().equals("zza")) continue;
-                Pine.hook(method, adapter(serviceContext, method.toString()));
+                Hooker.hook(method, adapter(serviceContext, method.toString()));
                 count[0]++;
             }
         }
         Class<?> client = Class.forName("com.google.android.gms.common.internal.BaseGmsClient", false, loader);
         for (Constructor<?> constructor : client.getDeclaredConstructors()) {
             if (constructor.getParameterTypes().length == 0 || constructor.getParameterTypes()[0] != Context.class) continue;
-            Pine.hook(constructor, adapter(serviceContext, "BaseGmsClient constructor"));
+            Hooker.hook(constructor, adapter(serviceContext, "BaseGmsClient constructor"));
             count[0]++;
         }
         // WSC 468's ads SDK also creates clients inside a separately loaded
         // Play Services Dynamite module. Those clients do not inherit the game's
         // BaseGmsClient, so the constructor hook above cannot repair their context.
         // Adapt before the SDK captures/wraps it for either remote or local creators.
-        count[0] += installAds(loader, method -> Pine.hook(method, adapter(serviceContext, method.toString())));
+        count[0] += installAds(loader, method -> Hooker.hook(method, adapter(serviceContext, method.toString())));
         GuestRuntime.log("SDK CONTEXT: " + count[0] + " pontos instalados; pacote=" + serviceContext.getPackageName()
                 + "; UID=" + serviceContext.getApplicationInfo().uid + "; UID do processo=" + android.os.Process.myUid(), null);
     }
@@ -84,9 +82,9 @@ final class SdkContextHooks {
         arguments[0] = serviceContext;
         return true;
     }
-    private static MethodHook adapter(Context serviceContext, String entry) {
-        return new MethodHook() {
-            @Override public void beforeCall(Pine.CallFrame frame) {
+    private static Hooker.MethodHook adapter(Context serviceContext, String entry) {
+        return new Hooker.MethodHook() {
+            @Override public void beforeCall(Hooker.CallFrame frame) {
                 if (!adaptArguments(frame.args, serviceContext)) return;
                 GuestRuntime.log("SDK CONTEXT: " + entry + " -> " + serviceContext.getPackageName(), null);
             }

@@ -28,17 +28,76 @@ targets = [('arm64-v8a', 'aarch64-linux-android24', 'arm64'),
            ('armeabi-v7a', 'armv7a-linux-androideabi24', 'arm32')]
 libraries = {}
 payloads = []
+
+# Prefab headers and lib dirs from the LSPlant, Dobby and shadowhook AARs.
+# We use the "standalone" build of LSPlant which statically links libc++ to
+# avoid the runtime dependency on libc++_shared.so (the launcher itself uses
+# -static-libstdc++, so libc++_shared.so is not packaged).
+lsplant_aar = root / 'app/libs/lsplant-standalone-6.4.aar'
+dobby_aar = root / 'app/libs/dobby-1.2.aar'
+shadowhook_aar = root / 'app/libs/shadowhook-1.0.10.aar'
+
 with tempfile.TemporaryDirectory(prefix='wsc-native-') as temporary:
     for abi, target, _ in ([] if args.mod_only else targets):
         libdir = Path(temporary) / abi
         libdir.mkdir()
-        with ZipFile(aar) as archive:
+        with ZipFile(shadowhook_aar) as archive:
             (libdir / 'libshadowhook.so').write_bytes(archive.read('jni/' + abi + '/libshadowhook.so'))
+        with ZipFile(lsplant_aar) as archive:
+            (libdir / 'liblsplant.so').write_bytes(archive.read(f'prefab/modules/lsplant/libs/android.{abi}/liblsplant.so'))
+        with ZipFile(dobby_aar) as archive:
+            # Dobby is shipped as a static archive (libdobby.a). LSPlant links it
+            # in at our hooker bridge compilation time so the resulting .so is
+            # self-contained.
+            (libdir / 'libdobby.a').write_bytes(archive.read(f'prefab/modules/dobby/libs/android.{abi}/libdobby.a'))
         output = root / 'app/src/main/jniLibs' / abi / 'libwscmodhost.so'
         output.parent.mkdir(parents=True, exist_ok=True)
-        subprocess.run([str(bin_dir / (target + '-clang++')), *flags, str(root / 'native/mod_host.cpp'),
-                        '-L' + str(libdir), '-lshadowhook', '-llog', '-ldl', '-o', str(output)], check=True)
+        # Compose include path: shadowhook, lsplant (prefab), dobby (prefab).
+        lsplant_include = Path(temporary) / f'lsplant-include-{abi}'
+        lsplant_include.mkdir()
+        with ZipFile(lsplant_aar) as archive:
+            for entry in ['prefab/modules/lsplant/include/lsplant.hpp',
+                           'prefab/modules/lsplant/include/utils/hook_helper.hpp',
+                           'prefab/modules/lsplant/include/utils/jni_helper.hpp']:
+                target_path = lsplant_include / entry.split('/')[-1]
+                target_path.write_bytes(archive.read(entry))
+            utils_dir = lsplant_include / 'utils'
+            utils_dir.mkdir(exist_ok=True)
+            (utils_dir / 'hook_helper.hpp').write_bytes(archive.read('prefab/modules/lsplant/include/utils/hook_helper.hpp'))
+            (utils_dir / 'jni_helper.hpp').write_bytes(archive.read('prefab/modules/lsplant/include/utils/jni_helper.hpp'))
+        dobby_include = Path(temporary) / f'dobby-include-{abi}'
+        dobby_include.mkdir()
+        with ZipFile(dobby_aar) as archive:
+            (dobby_include / 'dobby.h').write_bytes(archive.read('prefab/modules/dobby/include/dobby.h'))
+            (dobby_include / 'dobby_symbol_resolver.h').write_bytes(archive.read('prefab/modules/dobby/include/dobby_symbol_resolver.h'))
+            (dobby_include / 'bionic_linker_restriction.h').write_bytes(archive.read('prefab/modules/dobby/include/bionic_linker_restriction.h'))
+        shadowhook_include = root / 'native/vendor'
+        subprocess.run([str(bin_dir / (target + '-clang++')), *flags,
+                        '-I' + str(root / 'native/include'),
+                        '-I' + str(shadowhook_include),
+                        '-I' + str(lsplant_include),
+                        '-I' + str(lsplant_include / 'utils'),
+                        '-I' + str(dobby_include),
+                        str(root / 'native/mod_host.cpp'),
+                        str(root / 'native/lsplant_bridge/lsplant_bridge.cpp'),
+                        '-L' + str(libdir),
+                        '-Wl,--whole-archive', '-llsplant', '-Wl,--no-whole-archive',
+                        '-lshadowhook', '-ldobby', '-llog', '-ldl',
+                        '-o', str(output)], check=True)
         print(output)
+        # Also copy the prebuilt LSPlant and shadowhook .so into jniLibs so
+        # they ship inside the APK alongside libwscmodhost.so.
+        jni_libs = root / 'app/src/main/jniLibs' / abi
+        jni_libs.mkdir(parents=True, exist_ok=True)
+        (jni_libs / 'liblsplant.so').write_bytes((libdir / 'liblsplant.so').read_bytes())
+        (jni_libs / 'libshadowhook.so').write_bytes((libdir / 'libshadowhook.so').read_bytes())
+        # Also extract libpine.so from canyie-pine.aar so Pine can be used on Android 14+.
+        pine_aar = root / 'app/libs/canyie-pine.aar'
+        with ZipFile(pine_aar) as archive:
+            (jni_libs / 'libpine.so').write_bytes(archive.read('jni/' + abi + '/libpine.so'))
+        print(jni_libs / 'liblsplant.so')
+        print(jni_libs / 'libshadowhook.so')
+        print(jni_libs / 'libpine.so')
     for abi, target, profile in targets:
         module = build / abi / 'libplayer_roles.so'
         module.parent.mkdir(parents=True, exist_ok=True)

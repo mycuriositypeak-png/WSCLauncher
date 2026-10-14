@@ -33,8 +33,8 @@ android {
         applicationId = "dev.wsc.launcher"
         minSdk = 24
         targetSdk = 28 // Experimental cross-package hosting; not a Play Store release.
-        versionCode = 13
-        versionName = "1.0.4"
+        versionCode = 22
+        versionName = "1.1.3"
     }
 
     val wscReleaseSigning = if (releaseSigningConfigured) {
@@ -64,7 +64,14 @@ android {
         }
     }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
-    packaging { jniLibs.useLegacyPackaging = true }
+    packaging {
+        jniLibs.useLegacyPackaging = true
+        // Pick up LSPlant + Dobby native artifacts via Prefab.
+        jniLibs.pickFirsts += setOf("**/liblsplant.so", "**/libshadowhook.so")
+    }
+    buildFeatures {
+        prefab = true
+    }
     testOptions { unitTests.isIncludeAndroidResources = true }
     lint {
         // Intentionally old target for this sideload-only hosting experiment.
@@ -77,7 +84,12 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel:2.8.7")
     implementation("androidx.lifecycle:lifecycle-livedata:2.8.7")
+    // Hybrid hooking: Pine for Android 14+ (where LSPlant 6.4 lacks GetMethodShorty),
+    // LSPlant for Android 10-13 (where Pine's ART introspection fails on some ROMs).
+    // The choice is made at runtime in dev.wsc.launcher.Hooker.
     implementation(files("libs/canyie-pine.aar"))
+    implementation(files("libs/lsplant-standalone-6.4.aar"))
+    implementation(files("libs/dobby-1.2.aar"))
     implementation(files("libs/shadowhook-1.0.10.aar"))
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.robolectric:robolectric:4.14.1")
